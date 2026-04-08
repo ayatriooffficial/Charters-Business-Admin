@@ -5,6 +5,7 @@ import Card from '../components/Common/Card';
 import Button from '../components/Common/Button';
 import InputField from '../components/Common/InputField';
 import { profileService, aiService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import {
   normalizeLinkedInUrl,
   validateLinkedInUrl,
@@ -335,6 +336,8 @@ function CertificationForm({ certifications = [], onChange, maxCertifications = 
 }
 
 export default function LinkedInPage() {
+  const { user } = useAuth();
+  const hasAccess = user?.permissions?.profileBranding?.headlineGenerator;
   // Apify-based fetch — no manual browser login required
   const [isLoggedIn, setIsLoggedIn] = useState(true);
 
@@ -494,6 +497,11 @@ export default function LinkedInPage() {
   };
 
   const handleScrapeProfile = async () => {
+    if (!hasAccess) {
+      toast.error('Access not granted by admin');
+      return;
+    }
+
     // Using Apify actor — no manual login required
 
     if (!profileUrl.trim()) {
@@ -585,6 +593,11 @@ export default function LinkedInPage() {
   };
 
   const handleSaveProfile = async () => {
+    if (!hasAccess) {
+      toast.error('Access not granted by admin');
+      return;
+    }
+
     if (missingFields && missingFields.length > 0) {
       toast.error(`Please fill required fields before saving: ${missingFields.join(', ')}`);
       return;
@@ -642,6 +655,29 @@ export default function LinkedInPage() {
 
   return (
     <PageLayout title="LinkedIn Profile">
+      <div style={{ position: 'relative' }}>
+        {!hasAccess && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.6)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10,
+            borderRadius: 12,
+            flexDirection: 'column',
+            gap: 10
+          }}>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>Access not granted by admin</div>
+          </div>
+        )}
+
+        <div style={{ opacity: hasAccess ? 1 : 0.5, pointerEvents: hasAccess ? 'auto' : 'none' }}>
       {/* Scraper Status */}
       <Card className="login-status">
         <div className="login-header">
@@ -668,7 +704,7 @@ export default function LinkedInPage() {
             onChange={(e) => setProfileUrl(e.target.value)}
             placeholder="https://www.linkedin.com/in/username"
           />
-          <Button onClick={handleScrapeProfile} loading={loading}>
+          <Button onClick={handleScrapeProfile} loading={loading} disabled={!hasAccess}>
             Scrape Profile
           </Button>
           <p style={{ fontSize: 12, marginTop: 10, color: '#666' }}>
@@ -823,7 +859,7 @@ export default function LinkedInPage() {
           <Button
             onClick={handleSaveProfile}
             loading={loading}
-            disabled={missingFields && missingFields.length > 0}
+            disabled={!hasAccess || (missingFields && missingFields.length > 0)}
             style={{ minWidth: 200, marginBottom: 10 }}
           >
             Save & Calculate Score
@@ -833,6 +869,8 @@ export default function LinkedInPage() {
           </p>
         </Card>
       )}
+        </div>
+      </div>
     </PageLayout>
   );
 }

@@ -7,7 +7,8 @@ import {
   RiBarChartLine,
   RiExternalLinkLine,
   RiCheckboxCircleLine,
-  RiPlayLine
+  RiPlayLine,
+  RiLockLine
 } from 'react-icons/ri';
 import { useAuth } from '../context/AuthContext';
 import { profileService } from '../services/api';
@@ -19,6 +20,7 @@ import { EmptyState, ScorePreviewCard, SectionHeader } from '../components/Commo
 
 export default function YouTubePage() {
   const { user } = useAuth();
+  const hasAccess = user?.permissions?.profileBranding?.headlineGenerator;
   const [channelUrl, setChannelUrl] = useState('');
   const [youtube, setYoutube] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -47,6 +49,10 @@ export default function YouTubePage() {
   }, [load]);
 
   const handleAnalyze = async () => {
+    if (!hasAccess) {
+      return toast.error('Access not granted by admin');
+    }
+
     if (!channelUrl.trim()) {
       return toast.error('Enter your YouTube channel link');
     }
@@ -89,6 +95,30 @@ export default function YouTubePage() {
       title="YouTube Channel"
       subtitle={`We compare your public video titles with your selected course: ${user?.selectedCourse || 'Not selected'}`}
     >
+      <div style={{ position: 'relative' }}>
+        {!hasAccess && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.6)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10,
+            borderRadius: 12,
+            flexDirection: 'column',
+            gap: 10
+          }}>
+            <RiLockLine style={{ fontSize: 32 }} />
+            <div style={{ fontSize: 16, fontWeight: 600 }}>Access not granted by admin</div>
+          </div>
+        )}
+
+        <div style={{ opacity: hasAccess ? 1 : 0.5, pointerEvents: hasAccess ? 'auto' : 'none' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Card>
@@ -106,6 +136,7 @@ export default function YouTubePage() {
               <Button
                 icon={<RiSearchLine />}
                 loading={analyzing}
+                disabled={!hasAccess}
                 onClick={handleAnalyze}
                 style={{ alignSelf: 'flex-start' }}
               >
@@ -244,6 +275,8 @@ export default function YouTubePage() {
           </Card>
         </div>
       </div>
+        </div>
+      </div>
     </PageLayout>
   );
 }
@@ -311,5 +344,3 @@ function formatDuration(totalSeconds) {
   }
   return `${seconds}s`;
 }
-
-

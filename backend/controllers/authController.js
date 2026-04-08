@@ -2,11 +2,18 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const ProfileBranding = require('../models/ProfileBranding');
 
-// Generate JWT Token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '7d'
-  });
+// 🔐 Generate JWT Token (UPDATED WITH VERSIONING)
+const generateToken = (user) => {
+  return jwt.sign(
+    {
+      id: user._id,
+      permissionsVersion: user.permissionsVersion
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: '15m' // short-lived token for security
+    }
+  );
 };
 
 // @desc    Register new user
@@ -23,7 +30,7 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    // Check if user already exists
+    // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -48,7 +55,7 @@ exports.register = async (req, res, next) => {
     });
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user);
 
     res.status(201).json({
       success: true,
@@ -76,7 +83,7 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    // Find user (include password for comparison)
+    // Find user (include password)
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
@@ -96,12 +103,20 @@ exports.login = async (req, res, next) => {
       });
     }
 
+    // 🔒 Check if user is active
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account is disabled. Contact admin.'
+      });
+    }
+
     // Update last login
     user.lastLogin = Date.now();
     await user.save();
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user);
 
     res.status(200).json({
       success: true,
@@ -119,7 +134,8 @@ exports.login = async (req, res, next) => {
 // @access  Private
 exports.getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    // req.user comes from middleware (already validated)
+    const user = req.user;
 
     res.status(200).json({
       success: true,
@@ -137,7 +153,14 @@ exports.updateProfile = async (req, res, next) => {
   try {
     const { firstName, lastName, phone, selectedCourse } = req.body;
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
 
     if (firstName) user.firstName = firstName;
     if (lastName) user.lastName = lastName;
@@ -163,10 +186,18 @@ exports.changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    const user = await User.findById(req.user.id).select('+password');
+    const user = await User.findById(req.user._id).select('+password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
 
     // Verify current password
     const isMatch = await user.comparePassword(currentPassword);
+
     if (!isMatch) {
       return res.status(400).json({
         success: false,

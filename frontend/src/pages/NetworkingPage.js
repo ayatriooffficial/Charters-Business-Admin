@@ -5,6 +5,7 @@ import Button from '../components/Common/Button';
 import InputField from '../components/Common/InputField';
 import { SectionHeader } from '../components/Common/SharedHelpers';
 import { profileService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import {
   RiArticleLine,
@@ -12,6 +13,7 @@ import {
   RiGlobalLine,
   RiGroupLine,
   RiLinksLine,
+  RiLockLine,
   RiSaveLine,
   RiShareLine,
   RiUserFollowLine
@@ -61,6 +63,8 @@ const METRICS = [
 ];
 
 export default function NetworkingPage() {
+  const { user } = useAuth();
+  const hasAccess = user?.permissions?.profileBranding?.headlineGenerator;
   const [form, setForm] = useState(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -96,6 +100,11 @@ export default function NetworkingPage() {
   };
 
   const handleSave = async () => {
+    if (!hasAccess) {
+      toast.error('Access not granted by admin');
+      return;
+    }
+
     setSaving(true);
     try {
       const payload = {
@@ -129,11 +138,41 @@ export default function NetworkingPage() {
       title="Networking"
       subtitle="Track your reach and content activity on Twitter / X, Medium, Substack, Dev.to, LinkedIn, or any other social / blogging platform."
       actions={(
-        <Button icon={<RiSaveLine />} loading={saving} onClick={handleSave}>
+        <Button
+          icon={<RiSaveLine />}
+          loading={saving}
+          onClick={handleSave}
+          disabled={!hasAccess}
+          style={{ opacity: hasAccess ? 1 : 0.5, pointerEvents: hasAccess ? 'auto' : 'none' }}
+        >
           Save & Recalculate
         </Button>
       )}
     >
+      <div style={{ position: 'relative' }}>
+        {!hasAccess && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.6)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10,
+            borderRadius: 12,
+            flexDirection: 'column',
+            gap: 10
+          }}>
+            <RiLockLine style={{ fontSize: 32 }} />
+            <div style={{ fontSize: 16, fontWeight: 600 }}>Access not granted by admin</div>
+          </div>
+        )}
+
+        <div style={{ opacity: hasAccess ? 1 : 0.5, pointerEvents: hasAccess ? 'auto' : 'none' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Card>
@@ -356,6 +395,8 @@ export default function NetworkingPage() {
               Strong audience, consistent posting, and a few good long-form pieces usually beat spreading thin across many platforms.
             </p>
           </Card>
+        </div>
+      </div>
         </div>
       </div>
     </PageLayout>

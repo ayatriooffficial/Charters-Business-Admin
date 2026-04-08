@@ -5,11 +5,12 @@ import Button from '../components/Common/Button';
 import InputField from '../components/Common/InputField';
 import { EmptyState, SectionHeader } from '../components/Common/SharedHelpers';
 import { aiService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import {
   RiRobotLine, RiMagicLine, RiFileTextLine,
   RiCheckLine, RiCopyleftLine, RiSparklingLine,
-  RiEditLine, RiAlignJustify
+  RiEditLine, RiAlignJustify, RiLockLine
 } from 'react-icons/ri';
 
 const TABS = [
@@ -20,6 +21,8 @@ const TABS = [
 ];
 
 export default function AIToolsPage() {
+  const { user } = useAuth();
+  const hasAccess = user?.permissions?.profileBranding?.headlineGenerator;
   const [activeTab, setActiveTab] = useState('headline');
 
   return (
@@ -27,51 +30,78 @@ export default function AIToolsPage() {
       title="AI Tools"
       subtitle="Use AI to improve your LinkedIn content, check grammar, and parse your resume"
     >
-      {/* Tab Bar */}
-      <div style={{
-        display: 'flex',
-        gap: 6,
-        marginBottom: 24,
-        background: 'var(--bg-secondary)',
-        padding: 6,
-        borderRadius: 'var(--radius)',
-        border: '1px solid var(--border)',
-        width: 'fit-content'
-      }}>
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '8px 18px',
-              borderRadius: 10,
-              border: 'none',
-              background: activeTab === tab.id ? 'var(--accent)'       : 'transparent',
-              color:      activeTab === tab.id ? '#fff'                 : 'var(--text-secondary)',
-              cursor: 'pointer',
-              fontSize: 14,
-              fontFamily: 'var(--font-body)',
-              fontWeight: activeTab === tab.id ? 500 : 400,
-              transition: 'all 0.18s ease'
-            }}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <div style={{ position: 'relative' }}>
+        {!hasAccess && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.6)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10,
+            borderRadius: 12,
+            flexDirection: 'column',
+            gap: 10
+          }}>
+            <RiLockLine style={{ fontSize: 32 }} />
+            <div style={{ fontSize: 16, fontWeight: 600 }}>Access not granted by admin</div>
+          </div>
+        )}
 
-      {activeTab === 'headline' && <HeadlineTool />}
-      {activeTab === 'about'    && <AboutTool />}
-      {activeTab === 'grammar'  && <GrammarTool />}
-      {activeTab === 'resume'   && <ResumeTool />}
+        <div style={{ opacity: hasAccess ? 1 : 0.5, pointerEvents: hasAccess ? 'auto' : 'none' }}>
+          {/* Tab Bar */}
+          <div style={{
+            display: 'flex',
+            gap: 6,
+            marginBottom: 24,
+            background: 'var(--bg-secondary)',
+            padding: 6,
+            borderRadius: 'var(--radius)',
+            border: '1px solid var(--border)',
+            width: 'fit-content'
+          }}>
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                disabled={!hasAccess}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '8px 18px',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: activeTab === tab.id ? 'var(--accent)'       : 'transparent',
+                  color:      activeTab === tab.id ? '#fff'                 : 'var(--text-secondary)',
+                  cursor: hasAccess ? 'pointer' : 'not-allowed',
+                  fontSize: 14,
+                  fontFamily: 'var(--font-body)',
+                  fontWeight: activeTab === tab.id ? 500 : 400,
+                  transition: 'all 0.18s ease'
+                }}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'headline' && <HeadlineTool hasAccess={hasAccess} />}
+          {activeTab === 'about'    && <AboutTool hasAccess={hasAccess} />}
+          {activeTab === 'grammar'  && <GrammarTool hasAccess={hasAccess} />}
+          {activeTab === 'resume'   && <ResumeTool hasAccess={hasAccess} />}
+        </div>
+      </div>
     </PageLayout>
   );
 }
 
 // ─── Headline Tool ────────────────────────────────────────────────
-function HeadlineTool() {
+function HeadlineTool({ hasAccess }) {
   const [headline,    setHeadline]    = useState('');
   const [targetRole,  setTargetRole]  = useState('');
   const [results,     setResults]     = useState([]);
@@ -113,6 +143,7 @@ function HeadlineTool() {
         <Button
           icon={<RiSparklingLine />}
           loading={loading}
+          disabled={!hasAccess}
           onClick={handleImprove}
           fullWidth
         >
@@ -161,7 +192,7 @@ function HeadlineTool() {
 }
 
 // ─── About Section Tool ───────────────────────────────────────────
-function AboutTool() {
+function AboutTool({ hasAccess }) {
   const [about,      setAbout]      = useState('');
   const [targetRole, setTargetRole] = useState('');
   const [skills,     setSkills]     = useState('');
@@ -208,7 +239,7 @@ function AboutTool() {
           onChange={e => setSkills(e.target.value)}
           placeholder="React, Node.js, AWS (comma separated)"
         />
-        <Button icon={<RiSparklingLine />} loading={loading} onClick={handleImprove} fullWidth>
+        <Button icon={<RiSparklingLine />} loading={loading} disabled={!hasAccess} onClick={handleImprove} fullWidth>
           Rewrite with AI
         </Button>
       </Card>
@@ -251,7 +282,7 @@ function AboutTool() {
 }
 
 // ─── Grammar Tool ─────────────────────────────────────────────────
-function GrammarTool() {
+function GrammarTool({ hasAccess }) {
   const [text,    setText]    = useState('');
   const [errors,  setErrors]  = useState(null);
   const [loading, setLoading] = useState(false);
@@ -281,7 +312,7 @@ function GrammarTool() {
           placeholder="Paste your LinkedIn headline, about section, or any professional text..."
           hint={`${text.split(/\s+/).filter(Boolean).length} words`}
         />
-        <Button icon={<RiCheckLine />} loading={loading} onClick={handleCheck} fullWidth>
+        <Button icon={<RiCheckLine />} loading={loading} disabled={!hasAccess} onClick={handleCheck} fullWidth>
           Check Grammar
         </Button>
       </Card>
@@ -346,7 +377,7 @@ function GrammarTool() {
 }
 
 // ─── Resume Tool ──────────────────────────────────────────────────
-function ResumeTool() {
+function ResumeTool({ hasAccess }) {
   const [file,    setFile]    = useState(null);
   const [result,  setResult]  = useState(null);
   const [loading, setLoading] = useState(false);
@@ -378,7 +409,7 @@ function ResumeTool() {
           transition: 'all 0.2s',
           cursor: 'pointer'
         }}
-          onClick={() => document.getElementById('resume-upload').click()}
+          onClick={() => hasAccess && document.getElementById('resume-upload').click()}
         >
           <RiFileTextLine style={{ fontSize: 40, color: file ? 'var(--green)' : 'var(--text-muted)', display: 'block', margin: '0 auto 10px' }} />
           {file
@@ -398,7 +429,7 @@ function ResumeTool() {
             onChange={e => setFile(e.target.files[0])}
           />
         </div>
-        <Button icon={<RiSparklingLine />} loading={loading} onClick={handleParse} fullWidth disabled={!file}>
+        <Button icon={<RiSparklingLine />} loading={loading} onClick={handleParse} fullWidth disabled={!hasAccess || !file}>
           Parse Resume
         </Button>
       </Card>
