@@ -36,6 +36,7 @@ exports.getInternalPermissions = async (req, res, next) => {
       chartersUserId,
       permissions: deepMerge(cloneDefaultPermissions(), access?.permissions || {}),
       mirrorStatus: access?.status || null,
+      source: 'profile-branding-metadata',
       updatedAt: access?.updatedAt || null,
     });
   } catch (error) {

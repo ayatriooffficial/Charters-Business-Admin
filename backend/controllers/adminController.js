@@ -26,7 +26,7 @@ const readBoolean = (value, fallback = false) => {
 
 const isLocalFallbackEnabled = () => readBoolean(
   process.env.CHARTERS_LOCAL_FALLBACK,
-  process.env.NODE_ENV !== 'production'
+  false
 );
 
 const shouldFallbackToLocal = (error) => {
@@ -101,10 +101,7 @@ const mapLocalUserRole = (role) => (
   String(role || '').toLowerCase() === 'admin' ? 'admin' : 'candidate'
 );
 
-const mapLocalUserStatus = (isActive, accessStatus) => {
-  if (accessStatus) return accessStatus;
-  return isActive === false ? 'disabled' : 'active';
-};
+const mapLocalUserStatus = (isActive) => (isActive === false ? 'disabled' : 'active');
 
 const toLocalCandidateShape = (userDoc) => {
   if (!userDoc) return null;
@@ -156,7 +153,7 @@ const getLocalUsersForAdmin = async () => {
     const access = accessMap.get(chartersUserId) || null;
     const profile = profileMap.get(chartersUserId) || null;
     const baseCandidate = toLocalCandidateShape(userDoc);
-    const status = mapLocalUserStatus(userDoc.isActive, access?.status);
+    const status = mapLocalUserStatus(userDoc.isActive);
     const defaultPermissions = deepMerge(cloneDefaultPermissions(), userDoc.permissions || {});
     const mergedPermissions = deepMerge(defaultPermissions, access?.permissions || {});
 
@@ -187,9 +184,9 @@ const getServiceActor = (req) => ({
   requestId: req.requestId || null,
 });
 
-const normalizeCandidateStatus = (candidate, access) => {
+const normalizeCandidateStatus = (candidate) => {
+  if (!candidate) return null;
   if (candidate?.status) return candidate.status;
-  if (access?.status) return access.status;
   return candidate?.isActive === false ? 'disabled' : 'active';
 };
 
@@ -273,7 +270,7 @@ const ensureCandidateLink = async (candidate) => {
 
 const shapeAdminUser = ({ candidate, link, access, profile }) => {
   const mergedPermissions = deepMerge(cloneDefaultPermissions(), access?.permissions || {});
-  const status = normalizeCandidateStatus(candidate, access);
+  const status = normalizeCandidateStatus(candidate);
 
   return {
     _id: String(candidate._id),
@@ -439,7 +436,7 @@ exports.updatePermissions = async (req, res, next) => {
         _id: chartersUserId,
         chartersUserId,
         permissions: updated.permissions,
-        status: candidate?.status || updated.status,
+        status: candidate?.status || null,
       },
     });
   } catch (error) {

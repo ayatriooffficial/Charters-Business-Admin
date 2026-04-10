@@ -4,20 +4,28 @@ const jwt = require('jsonwebtoken');
 
 const RETRYABLE_METHODS = new Set(['get', 'head', 'options']);
 const ALLOWED_ACTING_ROLES = new Set(['admin', 'recruiter']);
-const HOSTED_CHARTERS_BASE_URL = 'https://charters-business-admin.onrender.com';
+const PROD_CHARTERS_BASE_URLS = [
+  'https://charters-business.onrender.com',
+  'https://charters-business.vercel.app',
+];
 const LOCAL_CHARTERS_BASE_URL = 'http://localhost:5000';
 const DEFAULT_LOGIN_PATHS = ['/api/v1/auth/login', '/api/auth/login'];
+const SERVICE_KEY_HEADER = 'x-service-key';
+const SERVICE_KEY_ID_HEADER = 'x-service-key-id';
+const ACTING_ADMIN_TOKEN_HEADER = 'x-acting-admin-token';
 
 const normalizeBaseUrl = (rawUrl) => {
   const value = String(rawUrl || '').trim();
   return value.replace(/\/$/, '');
 };
 
-const getDefaultChartersBaseUrl = () => (
+const getDefaultChartersBaseUrls = () => (
   process.env.NODE_ENV === 'production'
-    ? HOSTED_CHARTERS_BASE_URL
-    : LOCAL_CHARTERS_BASE_URL
+    ? PROD_CHARTERS_BASE_URLS
+    : [LOCAL_CHARTERS_BASE_URL]
 );
+
+const getDefaultChartersBaseUrl = () => getDefaultChartersBaseUrls()[0];
 
 const normalizeTimeout = (value, fallback) => {
   const parsed = Number.parseInt(value, 10);
@@ -70,7 +78,7 @@ const getChartersBaseUrls = () => {
     ...parseCsvValues(process.env.CHARTERS_API_URLS),
     process.env.CHARTERS_API_URL,
     process.env.CHARTERS_API_TUNNEL_URL,
-    getDefaultChartersBaseUrl(),
+    ...getDefaultChartersBaseUrls(),
   ]
     .map((url) => normalizeBaseUrl(url))
     .filter(Boolean));
@@ -93,9 +101,68 @@ const parseCsvValues = (value) => String(value || '')
   .map((entry) => entry.trim())
   .filter(Boolean);
 
-const getServiceKey = () => {
+const parseServiceKeyRingFromJson = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return new Map();
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return new Map();
+    }
+
+    const ring = new Map();
+    for (const [keyId, keyValue] of Object.entries(parsed)) {
+      const normalizedKeyId = String(keyId || '').trim();
+      const normalizedKeyValue = String(keyValue || '').trim();
+      if (normalizedKeyId && normalizedKeyValue) {
+        ring.set(normalizedKeyId, normalizedKeyValue);
+      }
+    }
+
+    return ring;
+  } catch (error) {
+    return new Map();
+  }
+};
+
+const parseServiceKeyRingFromCsv = (value) => {
+  const ring = new Map();
+  for (const entry of parseCsvValues(value)) {
+    const delimiterIndex = entry.indexOf(':');
+    if (delimiterIndex <= 0) continue;
+
+    const keyId = entry.slice(0, delimiterIndex).trim();
+    const keyValue = entry.slice(delimiterIndex + 1).trim();
+    if (keyId && keyValue) {
+      ring.set(keyId, keyValue);
+    }
+  }
+
+  return ring;
+};
+
+const getServiceKeyRing = () => {
+  const ring = new Map();
+
+  for (const [keyId, keyValue] of parseServiceKeyRingFromJson(process.env.CHARTERS_SERVICE_KEY_RING_JSON).entries()) {
+    ring.set(keyId, keyValue);
+  }
+
+  for (const [keyId, keyValue] of parseServiceKeyRingFromJson(process.env.INTERNAL_SERVICE_KEY_RING_JSON).entries()) {
+    ring.set(keyId, keyValue);
+  }
+
+  for (const [keyId, keyValue] of parseServiceKeyRingFromCsv(process.env.CHARTERS_SERVICE_KEYS).entries()) {
+    ring.set(keyId, keyValue);
+  }
+
+  return ring;
+};
+
+const getLegacyServiceKey = () => {
   const keys = [
-    ...parseCsvValues(process.env.CHARTERS_SERVICE_KEYS),
+    ...parseCsvValues(process.env.CHARTERS_SERVICE_KEYS).filter((entry) => !entry.includes(':')),
     process.env.CHARTERS_SERVICE_KEY,
     process.env.INTERNAL_SERVICE_KEY,
     process.env.SERVICE_KEY,
@@ -104,6 +171,35 @@ const getServiceKey = () => {
     .filter(Boolean);
 
   return keys[0] || '';
+};
+
+const getServiceAuthMaterial = () => {
+  const keyRing = getServiceKeyRing();
+  if (keyRing.size > 0) {
+    const configuredKeyId = String(
+      process.env.CHARTERS_ACTIVE_SERVICE_KEY_ID ||
+      process.env.INTERNAL_ACTIVE_SERVICE_KEY_ID ||
+      ''
+    ).trim();
+
+    const selectedKeyId = configuredKeyId && keyRing.has(configuredKeyId)
+      ? configuredKeyId
+      : Array.from(keyRing.keys())[0];
+
+    if (!selectedKeyId) {
+      return { keyId: '', keyValue: '' };
+    }
+
+    return {
+      keyId: selectedKeyId,
+      keyValue: keyRing.get(selectedKeyId),
+    };
+  }
+
+  return {
+    keyId: '',
+    keyValue: getLegacyServiceKey(),
+  };
 };
 
 const getSharedSecret = () => (
@@ -197,6 +293,19 @@ const toServiceError = (error, fallbackMessage) => {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const logUpstreamEvent = (level, event, payload = {}) => {
+  const logger = level === 'error' ? console.error : console.log;
+  logger(
+    JSON.stringify({
+      level,
+      type: event,
+      service: 'charters-admin-service',
+      timestamp: new Date().toISOString(),
+      ...payload,
+    })
+  );
+};
+
 const isRetryableError = (error) => {
   if (!error?.response) {
     return true;
@@ -239,7 +348,7 @@ const createActingAdminToken = (actorContext) => {
 
   const sharedSecret = getSharedSecret();
   if (!sharedSecret) {
-    throw new Error('INTERNAL_SHARED_SECRET is not configured in Profile-Branding backend');
+    throw new Error('INTERNAL_SHARED_SECRET is not configured in Charters-Business-Admin backend');
   }
 
   return jwt.sign(
@@ -257,48 +366,94 @@ const createActingAdminToken = (actorContext) => {
 
 const createClient = (actorContext, includeServiceHeaders = true, baseURL = getChartersBaseUrl()) => {
   const context = normalizeActorContext(actorContext);
+  const requestId = buildRequestId(context.requestId);
 
   const headers = {
     'Content-Type': 'application/json',
-    'x-request-id': buildRequestId(context.requestId),
+    'x-request-id': requestId,
   };
 
   if (includeServiceHeaders) {
-    const serviceKey = getServiceKey();
-    if (!serviceKey) {
-      throw new Error('CHARTERS_SERVICE_KEY (or CHARTERS_SERVICE_KEYS) is not configured in Profile-Branding backend');
+    const authMaterial = getServiceAuthMaterial();
+    if (!authMaterial.keyValue) {
+      throw new Error('CHARTERS service key is not configured in Charters-Business-Admin backend');
     }
 
-    headers['x-service-key'] = serviceKey;
-    headers['x-acting-admin-token'] = createActingAdminToken(context);
+    headers[SERVICE_KEY_HEADER] = authMaterial.keyValue;
+    if (authMaterial.keyId) {
+      headers[SERVICE_KEY_ID_HEADER] = authMaterial.keyId;
+    }
+    headers[ACTING_ADMIN_TOKEN_HEADER] = createActingAdminToken(context);
   }
 
-  return axios.create({
+  const client = axios.create({
     baseURL,
     timeout: REQUEST_TIMEOUT_MS,
     headers,
   });
+
+  client.__chartersTrace = {
+    requestId,
+    baseURL,
+  };
+
+  return client;
 };
 
 const requestWithRetry = async (client, method, url, requestConfig = {}) => {
   const normalizedMethod = String(method || 'get').toLowerCase();
   const canRetry = RETRYABLE_METHODS.has(normalizedMethod);
   const maxRetries = canRetry ? RETRY_COUNT : 0;
+  const startedAt = Date.now();
+  const trace = client.__chartersTrace || {};
+  const upstreamUrl = `${trace.baseURL || ''}${url}`;
 
   let attempt = 0;
   while (true) {
     try {
-      return await client.request({
+      const response = await client.request({
         method: normalizedMethod,
         url,
         ...requestConfig,
       });
+
+      logUpstreamEvent('info', 'upstream_request_success', {
+        requestId: trace.requestId || null,
+        method: normalizedMethod.toUpperCase(),
+        url: upstreamUrl,
+        statusCode: response.status,
+        retryCount: attempt,
+        durationMs: Date.now() - startedAt,
+      });
+
+      return response;
     } catch (error) {
-      if (!canRetry || attempt >= maxRetries || !isRetryableError(error)) {
+      const statusCode = error?.response?.status || null;
+      const shouldRetry = canRetry && attempt < maxRetries && isRetryableError(error);
+
+      if (!shouldRetry) {
+        logUpstreamEvent('error', 'upstream_request_failure', {
+          requestId: trace.requestId || null,
+          method: normalizedMethod.toUpperCase(),
+          url: upstreamUrl,
+          statusCode,
+          retryCount: attempt,
+          durationMs: Date.now() - startedAt,
+          code: error?.code || null,
+          message: error?.message || null,
+        });
+
         throw error;
       }
 
       attempt += 1;
+      logUpstreamEvent('warn', 'upstream_request_retry', {
+        requestId: trace.requestId || null,
+        method: normalizedMethod.toUpperCase(),
+        url: upstreamUrl,
+        statusCode,
+        retryCount: attempt,
+      });
       await sleep(RETRY_BASE_DELAY_MS * attempt);
     }
   }
@@ -317,6 +472,7 @@ const chartersAdminService = {
         let retryAttempt = 0;
 
         while (true) {
+          const attemptStartedAt = Date.now();
           try {
             const response = await client.request({
               method: 'post',
@@ -337,6 +493,15 @@ const chartersAdminService = {
               throw forbidden;
             }
 
+            logUpstreamEvent('info', 'upstream_login_validation_success', {
+              requestId: client.__chartersTrace?.requestId || null,
+              method: 'POST',
+              url: `${baseURL}${loginPath}`,
+              statusCode: response.status,
+              retryCount: retryAttempt,
+              durationMs: Date.now() - attemptStartedAt,
+            });
+
             return {
               user,
               token: payload.token || response?.data?.token || null,
@@ -351,9 +516,27 @@ const chartersAdminService = {
 
             if (canRetryCurrentTarget) {
               retryAttempt += 1;
+              logUpstreamEvent('warn', 'upstream_login_validation_retry', {
+                requestId: client.__chartersTrace?.requestId || null,
+                method: 'POST',
+                url: `${baseURL}${loginPath}`,
+                statusCode: status || null,
+                retryCount: retryAttempt,
+              });
               await sleep(RETRY_BASE_DELAY_MS * retryAttempt);
               continue;
             }
+
+            logUpstreamEvent('error', 'upstream_login_validation_failure', {
+              requestId: client.__chartersTrace?.requestId || null,
+              method: 'POST',
+              url: `${baseURL}${loginPath}`,
+              statusCode: status || null,
+              retryCount: retryAttempt,
+              durationMs: Date.now() - attemptStartedAt,
+              code: error?.code || null,
+              message: error?.message || null,
+            });
 
             if (status === 404 || noResponse || status >= 500) {
               break;

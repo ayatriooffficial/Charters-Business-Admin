@@ -1,10 +1,10 @@
 const express = require('express');
 
 const { getInternalPermissions } = require('../controllers/internalPermissionsController');
-const { requireInternalService, verifyOptionalActingToken } = require('../middleware/internalServiceAuth');
+const { requireInternalService, verifyRequiredActingToken } = require('../middleware/internalServiceAuth');
 
 const router = express.Router();
 
-router.get('/:chartersUserId', requireInternalService, verifyOptionalActingToken, getInternalPermissions);
+router.get('/:chartersUserId', requireInternalService, verifyRequiredActingToken, getInternalPermissions);
 
 module.exports = router;
