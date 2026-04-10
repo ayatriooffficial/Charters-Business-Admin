@@ -149,6 +149,7 @@ const loginLimiter = rateLimit({
   max: parseInt(process.env.ADMIN_LOGIN_RATE_LIMIT_MAX_REQUESTS, 10) || 20,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.method === 'OPTIONS',
   message: 'Too many login attempts. Please try again later.',
 });
 
@@ -157,7 +158,7 @@ const limiter = rateLimit({
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 300,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path === '/health',
+  skip: (req) => req.method === 'OPTIONS' || req.path === '/health' || req.path === '/admin/auth/login',
   message: 'Too many requests from this IP, please try again later.',
 });
 app.use('/api/admin/auth/login', loginLimiter);
