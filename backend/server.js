@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
-const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const connectDB = require('./config/database');
@@ -142,27 +141,6 @@ app.use((req, res, next) => {
 
   next();
 });
-
-// Rate Limiting
-const loginLimiter = rateLimit({
-  windowMs: parseInt(process.env.ADMIN_LOGIN_RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
-  max: parseInt(process.env.ADMIN_LOGIN_RATE_LIMIT_MAX_REQUESTS, 10) || 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => req.method === 'OPTIONS',
-  message: 'Too many login attempts. Please try again later.',
-});
-
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 300,
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => req.method === 'OPTIONS' || req.path === '/health' || req.path === '/admin/auth/login',
-  message: 'Too many requests from this IP, please try again later.',
-});
-app.use('/api/admin/auth/login', loginLimiter);
-app.use('/api/', limiter);
 
 // CORS Configuration
 app.use(
