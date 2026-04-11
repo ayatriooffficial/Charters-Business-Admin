@@ -77,6 +77,32 @@ exports.login = async (req, res, next) => {
       },
     });
   } catch (error) {
+    if ((error?.status || error?.response?.status) === 429) {
+      const upstream = error?.upstream || {};
+      console.warn(
+        JSON.stringify({
+          level: 'warn',
+          type: 'admin_login_upstream_throttled',
+          requestId: req.requestId || null,
+          email: req.body?.email || null,
+          code: error?.code || 'UPSTREAM_RATE_LIMITED',
+          upstreamStatus: upstream.status || 429,
+          upstreamMethod: upstream.method || null,
+          upstreamUrl: upstream.url || null,
+          upstreamRetryAfter: upstream.retryAfter || null,
+          timestamp: new Date().toISOString(),
+        })
+      );
+
+      return res.status(429).json({
+        success: false,
+        requestId: req.requestId || null,
+        code: error?.code || 'UPSTREAM_RATE_LIMITED',
+        message: 'Admin login validation is temporarily rate-limited by Charters upstream. Please retry in about 60 seconds.',
+        ...(upstream.retryAfter ? { retryAfterSeconds: upstream.retryAfter } : {}),
+      });
+    }
+
     next(error);
   }
 };

@@ -276,18 +276,47 @@ const normalizeCandidatesPayload = (payload) => {
   };
 };
 
+const getUpstreamContext = (error) => {
+  const baseUrl = String(error?.config?.baseURL || '').trim();
+  const requestUrl = String(error?.config?.url || '').trim();
+  const retryAfter = error?.response?.headers?.['retry-after'] || null;
+
+  let url = null;
+  if (requestUrl && /^https?:\/\//i.test(requestUrl)) {
+    url = requestUrl;
+  } else if (baseUrl || requestUrl) {
+    url = `${baseUrl}${requestUrl}`;
+  }
+
+  return {
+    status: error?.response?.status || null,
+    method: error?.config?.method ? String(error.config.method).toUpperCase() : null,
+    url,
+    retryAfter,
+  };
+};
+
 const toServiceError = (error, fallbackMessage) => {
   const status = error?.status || error?.response?.status || 500;
-  const message =
-    error?.response?.data?.message ||
-    error?.message ||
-    fallbackMessage;
+  const upstream = getUpstreamContext(error);
+  const isUpstreamRateLimited = status === 429;
+
+  const message = isUpstreamRateLimited
+    ? 'Charters upstream temporarily rate-limited this request. Please retry shortly.'
+    : (
+      error?.response?.data?.message ||
+      error?.message ||
+      fallbackMessage
+    );
 
   const serviceError = new Error(message);
   serviceError.status = status;
   serviceError.details = error?.response?.data || null;
-  serviceError.code = error?.code || error?.response?.data?.code || null;
+  serviceError.code = isUpstreamRateLimited
+    ? 'UPSTREAM_RATE_LIMITED'
+    : (error?.code || error?.response?.data?.code || null);
   serviceError.isNetworkError = !error?.response;
+  serviceError.upstream = upstream;
   return serviceError;
 };
 
@@ -538,7 +567,8 @@ const chartersAdminService = {
               message: error?.message || null,
             });
 
-            if (status === 404 || noResponse || status >= 500) {
+            // Allow trying alternate base URLs/login paths when upstream throttles this target.
+            if (status === 404 || status === 429 || noResponse || status >= 500) {
               break;
             }
 
