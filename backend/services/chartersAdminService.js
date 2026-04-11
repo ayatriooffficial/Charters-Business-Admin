@@ -598,7 +598,7 @@ const chartersAdminService = {
   async getJobs(actorContext, params = {}) {
     try {
       const client = createClient(actorContext);
-      const response = await requestWithRetry(client, 'get', '/api/internal/admin/jobs', { params });
+      const response = await requestWithRetry(client, 'get', '/api/internal/admin/jobs/', { params });
       return extractPayload(response) || {};
     } catch (error) {
       throw toServiceError(error, 'Failed to fetch jobs from Charters');
@@ -618,7 +618,7 @@ const chartersAdminService = {
   async createJob(actorContext, payload) {
     try {
       const client = createClient(actorContext);
-      const response = await requestWithRetry(client, 'post', '/api/internal/admin/jobs', {
+      const response = await requestWithRetry(client, 'post', '/api/internal/admin/jobs/', {
         data: payload,
       });
       return extractPayload(response);

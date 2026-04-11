@@ -10,6 +10,8 @@ const adminAuthRoutes = require('./routes/adminAuth');
 const adminRoutes = require('./routes/admin');
 const permissionsRoutes = require('./routes/permissions');
 const internalPermissionsRoutes = require('./routes/internalPermissions');
+const jobPostingRoutes = require('./routes/jobPosting.routes')
+const internshipPostingRoutes = require('./routes/internshipPosting.routes')
 const { requestId } = require('./middleware/requestId');
 
 const createUnavailableRouter = (name, message) => {
@@ -170,6 +172,8 @@ app.use('/api/interview', aiInterviewRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/permissions', permissionsRoutes);
 app.use('/api/internal/permissions', internalPermissionsRoutes);
+app.use("/api/internal/admin/jobs", jobPostingRoutes);
+app.use("/api/internal/admin/internships", internshipPostingRoutes);
 
 // Server start time for client-side restart detection
 const SERVER_START = new Date().toISOString();

@@ -20,7 +20,7 @@ const defaultPermissions = {
   }
 };
 
-const userSchema = new mongoose.Schema(
+const adminSchema = new mongoose.Schema(
   {
     email: {
       type: String,
@@ -109,7 +109,7 @@ const userSchema = new mongoose.Schema(
 );
 
 // 🔐 Hash password
-userSchema.pre('save', async function (next) {
+adminSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
 
   try {
@@ -122,12 +122,12 @@ userSchema.pre('save', async function (next) {
 });
 
 // 🔐 Compare password
-userSchema.methods.comparePassword = async function (candidatePassword) {
+adminSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
 // 🔓 Public profile
-userSchema.methods.toPublicProfile = function () {
+adminSchema.methods.toPublicProfile = function () {
   return {
     id: this._id,
     email: this.email,
@@ -144,4 +144,4 @@ userSchema.methods.toPublicProfile = function () {
   };
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model('Admin', adminSchema);

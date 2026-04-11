@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const User = require('../models/Admin');
 const ProfileBranding = require('../models/ProfileBranding');
 const CandidateLink = require('../models/CandidateLink');
 const CandidateAccess = require('../models/CandidateAccess');
