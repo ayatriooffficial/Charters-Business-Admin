@@ -118,7 +118,23 @@ export const AuthProvider = ({ children }) => {
 
   // LOGIN
   const login = async (email, password) => {
-    // Admin login must always go through PB -> Charters validation path.
+    // Candidate login first keeps regular users independent from admin-upstream availability.
+    let candidateError = null;
+    try {
+      const { data } = await api.post('/auth/login', { email, password });
+      setSessionToken(data.token);
+      setUser(data.user);
+      return data;
+    } catch (error) {
+      candidateError = error;
+      const status = error?.response?.status;
+      // Non-auth failures should surface immediately.
+      if (![401, 403].includes(status)) {
+        throw error;
+      }
+    }
+
+    // Candidate auth failed -> try admin validation path.
     try {
       const adminRes = await api.post('/admin/auth/login', { email, password });
       if (adminRes?.data?.token && adminRes?.data?.user) {
@@ -126,19 +142,20 @@ export const AuthProvider = ({ children }) => {
         setUser(adminRes.data.user);
         return adminRes.data;
       }
-    } catch (adminError) {
-      const status = adminError?.response?.status;
-      // Continue to candidate login only for auth failures/not-found route.
-      if (![401, 403, 404].includes(status)) {
-        throw adminError;
-      }
-    }
 
-    // Candidate login (existing PB local auth)
-    const { data } = await api.post('/auth/login', { email, password });
-    setSessionToken(data.token);
-    setUser(data.user);
-    return data;
+      throw candidateError;
+    } catch (adminError) {
+      const adminStatus = adminError?.response?.status;
+      if ([404, 429, 500, 502, 503, 504].includes(adminStatus)) {
+        const combinedError = new Error(
+          'Candidate credentials are invalid, and admin login validation is currently unavailable. Please try again shortly.'
+        );
+        combinedError.response = adminError?.response;
+        throw combinedError;
+      }
+
+      throw adminError;
+    }
   };
 
   // REGISTER

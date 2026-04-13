@@ -296,6 +296,56 @@ const getUpstreamContext = (error) => {
   };
 };
 
+const getUpstreamMessage = (error) => {
+  const data = error?.response?.data;
+
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  if (data && typeof data === 'object') {
+    return (
+      data.message ||
+      data.error ||
+      data.details ||
+      ''
+    );
+  }
+
+  return error?.message || '';
+};
+
+const isLikelyRouteMissing404 = (error) => {
+  if ((error?.response?.status || error?.status) !== 404) {
+    return false;
+  }
+
+  const message = String(getUpstreamMessage(error) || '').toLowerCase();
+
+  // Upstream auth systems sometimes return 404 for unknown users; avoid
+  // treating those as route-missing signals.
+  const looksLikeCredentialFailure = (
+    message.includes('invalid credential') ||
+    message.includes('invalid email') ||
+    message.includes('invalid password') ||
+    message.includes('invalid email or password') ||
+    message.includes('user not found') ||
+    message.includes('email not found')
+  );
+
+  if (looksLikeCredentialFailure) {
+    return false;
+  }
+
+  return (
+    message.includes('route not found') ||
+    message.includes('cannot post') ||
+    message.includes('endpoint') ||
+    message.includes('not found') ||
+    message.includes('status code 404')
+  );
+};
+
 const toServiceError = (error, fallbackMessage) => {
   const status = error?.status || error?.response?.status || 500;
   const upstream = getUpstreamContext(error);
@@ -493,6 +543,7 @@ const chartersAdminService = {
     const baseUrls = getChartersBaseUrls();
     const loginPaths = getLoginPaths();
     let lastError = null;
+    let credentialError = null;
 
     for (const baseURL of baseUrls) {
       const client = createClient(requestContext, false, baseURL);
@@ -567,6 +618,16 @@ const chartersAdminService = {
               message: error?.message || null,
             });
 
+            if (status === 400 || status === 401 || status === 403) {
+              credentialError = error;
+              break;
+            }
+
+            if (status === 404 && !isLikelyRouteMissing404(error)) {
+              credentialError = error;
+              break;
+            }
+
             // Allow trying alternate base URLs/login paths when upstream throttles this target.
             if (status === 404 || status === 429 || noResponse || status >= 500) {
               break;
@@ -576,6 +637,18 @@ const chartersAdminService = {
           }
         }
       }
+    }
+
+    if (credentialError) {
+      throw toServiceError(credentialError, 'Failed to validate admin credentials with Charters');
+    }
+
+    if ((lastError?.response?.status || lastError?.status) === 404) {
+      const unavailableError = new Error('Admin login validation service is currently unavailable. Please try again shortly.');
+      unavailableError.status = 503;
+      unavailableError.code = 'UPSTREAM_LOGIN_ROUTE_NOT_FOUND';
+      unavailableError.upstream = getUpstreamContext(lastError);
+      throw unavailableError;
     }
 
     throw toServiceError(lastError || new Error('Upstream login service unavailable'), 'Failed to validate admin credentials with Charters');
