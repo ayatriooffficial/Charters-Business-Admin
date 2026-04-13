@@ -11,13 +11,12 @@ export default function PageLayout({ children, title, subtitle, actions }) {
   const homeRoute = user?.role === 'admin' ? '/admin' : '/home';
 
   return (
-    <div style={{ minHeight: '100vh', background: 'transparent' }}>
+    <div style={{ height: '100vh', background: 'transparent', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       
       {/* HEADER */}
       <header
         style={{
-          position: 'sticky',
-          top: 0,
+          flexShrink: 0,
           zIndex: 120,
           background: 'rgba(255,255,255,0.92)',
           backdropFilter: 'blur(18px)',
@@ -168,7 +167,7 @@ export default function PageLayout({ children, title, subtitle, actions }) {
       </header>
 
       {/* MAIN LAYOUT */}
-      <div style={{ display: 'flex', minHeight: 'calc(100vh - 74px)' }}>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <Sidebar />
 
         <main

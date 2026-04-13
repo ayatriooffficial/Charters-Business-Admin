@@ -110,16 +110,15 @@ export default function Sidebar() {
   return (
     <aside style={{
       width: collapsed ? 84 : 260,
-      minHeight: 'calc(100vh - 74px)',
+      height: '100%',
       background: 'rgba(255,255,255,0.68)',
       borderRight: '1px solid var(--border)',
       display: 'flex',
       flexDirection: 'column',
       transition: 'width 0.25s ease',
-      position: 'sticky',
-      top: 74,
       flexShrink: 0,
       zIndex: 100,
+      overflowY: 'auto',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)'
     }}>
