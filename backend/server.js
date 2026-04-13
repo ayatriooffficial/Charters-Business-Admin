@@ -150,16 +150,10 @@ app.use((req, res, next) => {
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl)
-      if (!origin) {
+      if (!origin || isAllowedOrigin(origin)) {
         return callback(null, true);
       }
 
-      if (isAllowedOrigin(origin)) {
-        return callback(null, true);
-      }
-
-      console.warn(`[CORS] Request blocked from unauthorized origin: ${origin}`);
       return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,

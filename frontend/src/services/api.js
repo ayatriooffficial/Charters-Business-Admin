@@ -7,16 +7,8 @@ const LOCAL_API_BASE_URL = 'http://localhost:5000/api';
 const resolveApiBaseUrl = () => {
   if (typeof window !== 'undefined') {
     const hostname = String(window.location?.hostname || '').toLowerCase();
-    
-    // Check if the hostname is a local address
-    const isLocal = hostname === 'localhost' || 
-                   hostname === '127.0.0.1' || 
-                   /^192\.168\.\d+\.\d+$/.test(hostname) ||
-                   /^10\.\d+\.\d+\.\d+$/.test(hostname);
-
-    if (isLocal) {
-      // Use the same hostname but port 5000 for the local backend
-      return `http://${hostname}:5000/api`;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return LOCAL_API_BASE_URL;
     }
   }
 
@@ -203,79 +195,142 @@ const getObjectFromResponse = (response, keys = []) => {
 
 export const recruitmentAdminService = {
   getMyJobPostings: async () => {
-    const response = await api.get('/admin/jobs/my-postings');
-    return toArray(getCollectionFromResponse(response, ['jobPostings', 'jobs', 'data']));
-  },
-
-  getAllJobPostings: async (params = {}) => {
-    const response = await api.get('/admin/jobs', { params });
+    const response = await requestWithFallback(
+      [
+        () => api.get('/jobs'),
+        () => api.get('/admin/jobs/my-postings'),
+        () => api.get('/admin/jobs'),
+        () => api.get('/jobs/my-postings'),
+      ],
+      'Job postings endpoint is not available on this backend.'
+    );
+    console.log(response)
     return toArray(getCollectionFromResponse(response, ['jobPostings', 'jobs', 'data']));
   },
 
   getJobById: async (id) => {
-    const response = await api.get(`/admin/jobs/${id}`);
+    const response = await requestWithFallback(
+      [
+        () => api.get(`/admin/jobs/${id}`),
+        () => api.get(`/jobs/${id}`)
+      ],
+      'Job details endpoint is not available on this backend.'
+    );
+
     return getObjectFromResponse(response, ['jobPosting', 'job', 'data']);
   },
 
-  createJobPosting: async (payload) => {
-    const response = await api.post('/admin/jobs', payload);
-    return response.data;
-  },
+  createJobPosting: (payload) => requestWithFallback(
+    [
+      () => api.post('/admin/jobs', payload),
+      () => api.post('/jobs', payload)
+    ],
+    'Create job endpoint is not available on this backend.'
+  ),
 
-  updateJobPosting: async (id, payload) => {
-    const response = await api.put(`/admin/jobs/${id}`, payload);
-    return response.data;
-  },
+  updateJobPosting: (id, payload) => requestWithFallback(
+    [
+      () => api.put(`/admin/jobs/${id}`, payload),
+      () => api.patch(`/admin/jobs/${id}`, payload),
+      () => api.put(`/jobs/${id}`, payload),
+      () => api.patch(`/jobs/${id}`, payload)
+    ],
+    'Update job endpoint is not available on this backend.'
+  ),
 
-  deleteJobPosting: async (id) => {
-    const response = await api.delete(`/admin/jobs/${id}`);
-    return response.data;
-  },
+  deleteJobPosting: (id) => requestWithFallback(
+    [
+      () => api.delete(`/admin/jobs/${id}`),
+      () => api.delete(`/jobs/${id}`)
+    ],
+    'Delete job endpoint is not available on this backend.'
+  ),
 
   getApplicationsForJob: async (jobId, params = {}) => {
-    const response = await api.get(`/admin/jobs/${jobId}/applications`, { params });
+    const response = await requestWithFallback(
+      [
+        () => api.get(`/admin/jobs/${jobId}/applications`, { params }),
+        () => api.get(`/jobs/${jobId}/applications`, { params })
+      ],
+      'Job applications endpoint is not available on this backend.'
+    );
+
     return toArray(getCollectionFromResponse(response, ['applications', 'jobApplications', 'data']));
   },
 
   getMyInternshipPostings: async () => {
-    const response = await api.get('/admin/internships/my-postings');
-    return toArray(getCollectionFromResponse(response, ['internshipPostings', 'internships', 'data']));
-  },
+    const response = await requestWithFallback(
+      [
+        () => api.get('/admin/internships/my-postings'),
+        () => api.get('/admin/internships'),
+        () => api.get('/internships/my-postings'),
+        () => api.get('/internships')
+      ],
+      'Internship postings endpoint is not available on this backend.'
+    );
 
-  getAllInternshipPostings: async (params = {}) => {
-    const response = await api.get('/admin/internships', { params });
     return toArray(getCollectionFromResponse(response, ['internshipPostings', 'internships', 'data']));
   },
 
   getInternshipById: async (id) => {
-    const response = await api.get(`/admin/internships/${id}`);
+    const response = await requestWithFallback(
+      [
+        () => api.get(`/admin/internships/${id}`),
+        () => api.get(`/internships/${id}`)
+      ],
+      'Internship details endpoint is not available on this backend.'
+    );
+
     return getObjectFromResponse(response, ['internshipPosting', 'internship', 'data']);
   },
 
-  createInternshipPosting: async (payload) => {
-    const response = await api.post('/admin/internships', payload);
-    return response.data;
-  },
+  createInternshipPosting: (payload) => requestWithFallback(
+    [
+      () => api.post('/admin/internships', payload),
+      () => api.post('/internships', payload)
+    ],
+    'Create internship endpoint is not available on this backend.'
+  ),
 
-  updateInternshipPosting: async (id, payload) => {
-    const response = await api.put(`/admin/internships/${id}`, payload);
-    return response.data;
-  },
+  updateInternshipPosting: (id, payload) => requestWithFallback(
+    [
+      () => api.put(`/admin/internships/${id}`, payload),
+      () => api.patch(`/admin/internships/${id}`, payload),
+      () => api.put(`/internships/${id}`, payload),
+      () => api.patch(`/internships/${id}`, payload)
+    ],
+    'Update internship endpoint is not available on this backend.'
+  ),
 
-  deleteInternshipPosting: async (id) => {
-    const response = await api.delete(`/admin/internships/${id}`);
-    return response.data;
-  },
+  deleteInternshipPosting: (id) => requestWithFallback(
+    [
+      () => api.delete(`/admin/internships/${id}`),
+      () => api.delete(`/internships/${id}`)
+    ],
+    'Delete internship endpoint is not available on this backend.'
+  ),
 
   getApplicationsForInternship: async (internshipId, params = {}) => {
-    const response = await api.get(`/admin/internships/${internshipId}/applications`, { params });
+    const response = await requestWithFallback(
+      [
+        () => api.get(`/admin/internships/${internshipId}/applications`, { params }),
+        () => api.get(`/internships/${internshipId}/applications`, { params })
+      ],
+      'Internship applications endpoint is not available on this backend.'
+    );
+
     return toArray(getCollectionFromResponse(response, ['applications', 'internshipApplications', 'data']));
   },
 
-  updateApplicationStatus: async (applicationId, status) => {
-    const response = await api.patch(`/admin/applications/${applicationId}/status`, { status });
-    return response.data;
-  }
+  updateApplicationStatus: (applicationId, status) => requestWithFallback(
+    [
+      () => api.patch(`/admin/applications/${applicationId}/status`, { status }),
+      () => api.put(`/admin/applications/${applicationId}/status`, { status }),
+      () => api.patch(`/applications/${applicationId}/status`, { status }),
+      () => api.put(`/applications/${applicationId}/status`, { status })
+    ],
+    'Update application status endpoint is not available on this backend.'
+  )
 };
 
 
