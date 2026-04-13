@@ -15,7 +15,14 @@ const ACTING_ADMIN_TOKEN_HEADER = 'x-acting-admin-token';
 
 const normalizeBaseUrl = (rawUrl) => {
   const value = String(rawUrl || '').trim();
-  return value.replace(/\/$/, '');
+  let normalized = value.replace(/\/$/, '');
+  
+  // Strip redundant /api suffix since service methods provide it in their paths.
+  if (normalized.toLowerCase().endsWith('/api')) {
+    normalized = normalized.slice(0, -4);
+  }
+  
+  return normalized;
 };
 
 const getDefaultChartersBaseUrls = () => (
@@ -293,7 +300,10 @@ const getUpstreamContext = (error) => {
   if (requestUrl && /^https?:\/\//i.test(requestUrl)) {
     url = requestUrl;
   } else if (baseUrl || requestUrl) {
-    url = `${baseUrl}${requestUrl}`;
+    // Ensure single slash between base and path, and avoid double /api if baseUrl wasn't normalized yet.
+    const cleanBase = String(baseUrl || '').replace(/\/+$/, '').replace(/\/api$/i, '');
+    const cleanPath = String(requestUrl || '').replace(/^\/+/, '/');
+    url = `${cleanBase}${cleanPath}`;
   }
 
   return {
@@ -399,7 +409,7 @@ const isRetryableError = (error) => {
   }
 
   const status = error.response.status;
-  return status === 429 || status >= 500;
+  return status >= 500;
 };
 
 const buildRequestId = (candidateId) => {
@@ -493,7 +503,11 @@ const requestWithRetry = async (client, method, url, requestConfig = {}) => {
   const maxRetries = canRetry ? RETRY_COUNT : 0;
   const startedAt = Date.now();
   const trace = client.__chartersTrace || {};
-  const upstreamUrl = `${trace.baseURL || ''}${url}`;
+  
+  // Clean construction for logging to avoid double /api/api/
+  const cleanBase = String(trace.baseURL || '').replace(/\/+$/, '').replace(/\/api$/i, '');
+  const cleanPath = String(url || '').replace(/^\/+/, '/');
+  const upstreamUrl = `${cleanBase}${cleanPath}`;
 
   let attempt = 0;
   while (true) {
