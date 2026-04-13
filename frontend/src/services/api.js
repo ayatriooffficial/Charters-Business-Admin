@@ -7,8 +7,16 @@ const LOCAL_API_BASE_URL = 'http://localhost:5000/api';
 const resolveApiBaseUrl = () => {
   if (typeof window !== 'undefined') {
     const hostname = String(window.location?.hostname || '').toLowerCase();
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return LOCAL_API_BASE_URL;
+    
+    // Check if the hostname is a local address
+    const isLocal = hostname === 'localhost' || 
+                   hostname === '127.0.0.1' || 
+                   /^192\.168\.\d+\.\d+$/.test(hostname) ||
+                   /^10\.\d+\.\d+\.\d+$/.test(hostname);
+
+    if (isLocal) {
+      // Use the same hostname but port 5000 for the local backend
+      return `http://${hostname}:5000/api`;
     }
   }
 

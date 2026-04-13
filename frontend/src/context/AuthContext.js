@@ -118,23 +118,8 @@ export const AuthProvider = ({ children }) => {
 
   // LOGIN
   const login = async (email, password) => {
-    // Candidate login first keeps regular users independent from admin-upstream availability.
-    let candidateError = null;
-    try {
-      const { data } = await api.post('/auth/login', { email, password });
-      setSessionToken(data.token);
-      setUser(data.user);
-      return data;
-    } catch (error) {
-      candidateError = error;
-      const status = error?.response?.status;
-      // Non-auth failures should surface immediately.
-      if (![401, 403].includes(status)) {
-        throw error;
-      }
-    }
-
-    // Candidate auth failed -> try admin validation path.
+    // Admin validation first ensures that users with upstream identities get the correct session type.
+    let adminError = null;
     try {
       const adminRes = await api.post('/admin/auth/login', { email, password });
       if (adminRes?.data?.token && adminRes?.data?.user) {
@@ -142,19 +127,37 @@ export const AuthProvider = ({ children }) => {
         setUser(adminRes.data.user);
         return adminRes.data;
       }
+    } catch (error) {
+      adminError = error;
+      const status = error?.response?.status;
+      
+      // If it's a critical upstream error (throttling or internal server error), 
+      // we might want to still try local login if enabled.
+      // But if it's just "not an admin" (403), we fall through.
+    }
 
-      throw candidateError;
-    } catch (adminError) {
-      const adminStatus = adminError?.response?.status;
-      if ([404, 429, 500, 502, 503, 504].includes(adminStatus)) {
-        const combinedError = new Error(
-          'Candidate credentials are invalid, and admin login validation is currently unavailable. Please try again shortly.'
-        );
-        combinedError.response = adminError?.response;
-        throw combinedError;
+    // Try candidate login (local) if admin login failed or was not applicable.
+    try {
+      const { data } = await api.post('/auth/login', { email, password });
+      setSessionToken(data.token);
+      setUser(data.user);
+      return data;
+    } catch (candidateError) {
+      const candidateStatus = candidateError?.response?.status;
+      
+      // If local login fails with 401/403 and admin login also failed/wasn't applicable, throw appropriate error.
+      if (adminError) {
+        const adminStatus = adminError?.response?.status;
+        if ([429, 500, 502, 503, 504].includes(adminStatus)) {
+           const combinedError = new Error(
+            'Login failed locally, and admin login validation is currently unavailable. Please try again shortly.'
+          );
+          combinedError.response = adminError?.response;
+          throw combinedError;
+        }
       }
-
-      throw adminError;
+      
+      throw candidateError;
     }
   };
 
