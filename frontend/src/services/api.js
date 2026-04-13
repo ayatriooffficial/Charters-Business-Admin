@@ -197,14 +197,14 @@ export const recruitmentAdminService = {
   getMyJobPostings: async () => {
     const response = await requestWithFallback(
       [
+        () => api.get('/jobs'),
         () => api.get('/admin/jobs/my-postings'),
         () => api.get('/admin/jobs'),
         () => api.get('/jobs/my-postings'),
-        () => api.get('/jobs')
       ],
       'Job postings endpoint is not available on this backend.'
     );
-
+    console.log(response)
     return toArray(getCollectionFromResponse(response, ['jobPostings', 'jobs', 'data']));
   },
 
