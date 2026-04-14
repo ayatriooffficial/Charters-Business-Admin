@@ -32,9 +32,8 @@ const isLocalFallbackEnabled = () => readBoolean(
   false
 );
 
-const shouldFallbackToLocal = (error) => {
-  if (!isLocalFallbackEnabled()) return false;
-
+const shouldFallbackToLocal = (error, options = {}) => {
+  const allowRateLimitedFallback = Boolean(options.allowRateLimitedFallback);
   const status = error?.status || error?.response?.status || null;
   const code = String(error?.code || '').toUpperCase();
   const message = String(
@@ -42,6 +41,13 @@ const shouldFallbackToLocal = (error) => {
     error?.response?.data?.message ||
     ''
   ).toLowerCase();
+
+  // Always allow read-fallback for upstream throttling to keep admin list usable.
+  if (status === 429 && allowRateLimitedFallback) {
+    return true;
+  }
+
+  if (!isLocalFallbackEnabled()) return false;
 
   if (error?.isNetworkError || NETWORK_FALLBACK_CODES.has(code)) {
     return true;
@@ -106,6 +112,19 @@ const mapLocalUserRole = (role) => (
 
 const mapLocalUserStatus = (isActive) => (isActive === false ? 'disabled' : 'active');
 
+const splitName = (value) => {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    return { firstName: '', lastName: '' };
+  }
+
+  const [firstName, ...rest] = normalized.split(/\s+/);
+  return {
+    firstName: firstName || '',
+    lastName: rest.join(' '),
+  };
+};
+
 const toLocalCandidateShape = (userDoc) => {
   if (!userDoc) return null;
 
@@ -132,6 +151,64 @@ const toLocalCandidateShape = (userDoc) => {
     updatedAt: userDoc.updatedAt || null,
     lastLogin: userDoc.lastLogin || null,
   };
+};
+
+const getMirroredUsersForAdmin = async () => {
+  const links = await CandidateLink.find({}).sort({ updatedAt: -1, createdAt: -1 });
+  if (!links.length) return [];
+
+  const chartersIds = links.map((entry) => entry.chartersUserId).filter(Boolean);
+  const pbUserIds = links
+    .map((entry) => entry.pbUserId)
+    .filter(Boolean);
+
+  const [accessEntries, pbUsers, profiles] = await Promise.all([
+    CandidateAccess.find({ chartersUserId: { $in: chartersIds } }),
+    pbUserIds.length
+      ? User.find({ _id: { $in: pbUserIds } })
+        .select('firstName lastName role isActive createdAt updatedAt lastLogin')
+      : [],
+    pbUserIds.length
+      ? ProfileBranding.find({ userId: { $in: pbUserIds } }).select('userId scores lastCalculated')
+      : [],
+  ]);
+
+  const accessMap = new Map(accessEntries.map((entry) => [entry.chartersUserId, entry]));
+  const userMap = new Map(pbUsers.map((entry) => [String(entry._id), entry]));
+  const profileMap = new Map(profiles.map((entry) => [String(entry.userId), entry]));
+
+  return links.map((link) => {
+    const chartersUserId = String(link.chartersUserId);
+    const access = accessMap.get(chartersUserId) || null;
+    const localUser = link.pbUserId ? userMap.get(String(link.pbUserId)) : null;
+    const profile = link.pbUserId ? profileMap.get(String(link.pbUserId)) : null;
+
+    const fullName = localUser
+      ? `${localUser.firstName || ''} ${localUser.lastName || ''}`.trim()
+      : '';
+    const derivedName = fullName || (link.email ? String(link.email).split('@')[0] : 'Candidate');
+    const names = splitName(derivedName);
+    const status = access?.status || mapLocalUserStatus(localUser?.isActive);
+
+    return {
+      _id: chartersUserId,
+      chartersUserId,
+      pbUserId: link.pbUserId || null,
+      name: derivedName || null,
+      firstName: names.firstName,
+      lastName: names.lastName,
+      email: link.email || null,
+      phone: link.phone || null,
+      role: mapLocalUserRole(localUser?.role),
+      status,
+      isActive: status === 'active',
+      permissions: normalizePermissions(access?.permissions || {}),
+      profileScores: mapProfileScores(profile),
+      createdAt: localUser?.createdAt || link.createdAt || null,
+      updatedAt: localUser?.updatedAt || link.updatedAt || null,
+      lastLogin: localUser?.lastLogin || null,
+    };
+  });
 };
 
 const getLocalUsersForAdmin = async () => {
@@ -302,20 +379,22 @@ exports.getUsers = async (req, res, next) => {
     try {
       payload = await chartersAdminService.getCandidates(getServiceActor(req), req.query || {});
     } catch (error) {
-      if (!shouldFallbackToLocal(error)) {
+      if (!shouldFallbackToLocal(error, { allowRateLimitedFallback: true })) {
         throw error;
       }
 
       const users = await getLocalUsersForAdmin();
+      const mirroredUsers = users.length ? users : await getMirroredUsersForAdmin();
+
       return res.status(200).json({
         success: true,
-        users,
+        users: mirroredUsers,
         pagination: {
-          total: users.length,
+          total: mirroredUsers.length,
           page: 1,
-          limit: users.length,
+          limit: mirroredUsers.length,
         },
-        source: 'local-fallback',
+        source: users.length ? 'local-fallback' : 'mirror-fallback',
       });
     }
 

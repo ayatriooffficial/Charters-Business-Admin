@@ -33,6 +33,8 @@ const PERMISSION_TEMPLATE = {
   aiInterview: AI_INTERVIEW_PERMISSION_TEMPLATE,
 };
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 function normalizeUser(entry = {}) {
   return {
     ...entry,
@@ -71,15 +73,29 @@ export default function AdminPage() {
   const [error, setError] = useState('');
 
   const fetchUsers = useCallback(async () => {
-    try {
-      setError('');
-      const { data } = await api.get('/admin/users');
-      setUsers((data.users || []).map(normalizeUser));
-    } catch (err) {
-      const message = err?.message || 'Failed to load users';
-      setError(message);
-    } finally {
-      setLoading(false);
+    setError('');
+
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const { data } = await api.get('/admin/users');
+        setUsers((data.users || []).map(normalizeUser));
+        setLoading(false);
+        return;
+      } catch (err) {
+        const status = err?.response?.status;
+        const isFinalAttempt = attempt === maxAttempts;
+
+        if (status === 429 && !isFinalAttempt) {
+          await sleep(1200 * attempt);
+          continue;
+        }
+
+        const message = err?.message || 'Failed to load users';
+        setError(message);
+        setLoading(false);
+        return;
+      }
     }
   }, []);
 
