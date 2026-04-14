@@ -159,31 +159,44 @@ export default function AdminPage() {
     const key = `${userId}-${tool}`;
     setSavingKey(key);
 
-    try {
-      const { data } = await api.patch(`/admin/users/${userId}/permissions`, {
-        permissions: {
-          [tool]: nextToolPermissions
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const { data } = await api.patch(`/admin/users/${userId}/permissions`, {
+          permissions: {
+            [tool]: nextToolPermissions
+          }
+        });
+
+        setUsers((prev) => prev.map((entry) => {
+          if (entry._id !== userId) return entry;
+          return {
+            ...entry,
+            permissions: normalizePermissions(
+              data?.user?.permissions || {
+                ...entry.permissions,
+                [tool]: nextToolPermissions
+              }
+            )
+          };
+        }));
+
+        if (successMessage) toast.success(successMessage);
+        setSavingKey('');
+        return;
+      } catch (err) {
+        const status = err?.response?.status;
+        const isFinalAttempt = attempt === maxAttempts;
+
+        if (status === 429 && !isFinalAttempt) {
+          await sleep(1200 * attempt);
+          continue;
         }
-      });
 
-      setUsers((prev) => prev.map((entry) => {
-        if (entry._id !== userId) return entry;
-        return {
-          ...entry,
-          permissions: normalizePermissions(
-            data?.user?.permissions || {
-              ...entry.permissions,
-              [tool]: nextToolPermissions
-            }
-          )
-        };
-      }));
-
-      if (successMessage) toast.success(successMessage);
-    } catch (err) {
-      toast.error(err?.message || 'Failed to update permissions');
-    } finally {
-      setSavingKey('');
+        toast.error(err?.message || 'Failed to update permissions');
+        setSavingKey('');
+        return;
+      }
     }
   };
 

@@ -153,6 +153,51 @@ const toLocalCandidateShape = (userDoc) => {
   };
 };
 
+const toMirroredCandidateShape = ({ chartersUserId, link, access, localUser }) => {
+  const baseName = localUser
+    ? `${localUser.firstName || ''} ${localUser.lastName || ''}`.trim()
+    : (link?.email ? String(link.email).split('@')[0] : 'Candidate');
+  const names = splitName(baseName);
+  const status = access?.status || mapLocalUserStatus(localUser?.isActive);
+
+  return {
+    _id: String(chartersUserId),
+    id: String(chartersUserId),
+    chartersUserId: String(chartersUserId),
+    name: baseName || null,
+    firstName: names.firstName,
+    lastName: names.lastName,
+    email: localUser?.email || link?.email || null,
+    phoneNumber: localUser?.phone || link?.phone || null,
+    courseInterestedIn: localUser?.selectedCourse || null,
+    role: mapLocalUserRole(localUser?.role),
+    status,
+    isActive: status === 'active',
+    createdAt: localUser?.createdAt || link?.createdAt || null,
+    updatedAt: localUser?.updatedAt || link?.updatedAt || null,
+    lastLogin: localUser?.lastLogin || null,
+  };
+};
+
+const getMirroredCandidateById = async (chartersUserId) => {
+  const link = await CandidateLink.findOne({ chartersUserId }).lean();
+  const access = await CandidateAccess.findOne({ chartersUserId }).lean();
+  const localUser = await User.findById(chartersUserId)
+    .select('email firstName lastName phone selectedCourse role isActive createdAt updatedAt lastLogin')
+    .lean();
+
+  if (!link && !localUser && !access) {
+    return null;
+  }
+
+  return toMirroredCandidateShape({
+    chartersUserId,
+    link,
+    access,
+    localUser,
+  });
+};
+
 const getMirroredUsersForAdmin = async () => {
   const links = await CandidateLink.find({}).sort({ updatedAt: -1, createdAt: -1 });
   if (!links.length) return [];
@@ -456,7 +501,7 @@ exports.updatePermissions = async (req, res, next) => {
     try {
       candidate = await chartersAdminService.getCandidateById(getServiceActor(req), chartersUserId);
     } catch (error) {
-      if (!shouldFallbackToLocal(error)) {
+      if (!shouldFallbackToLocal(error, { allowRateLimitedFallback: true })) {
         throw error;
       }
 
@@ -464,14 +509,20 @@ exports.updatePermissions = async (req, res, next) => {
         .select('email firstName lastName phone selectedCourse role permissions permissionsVersion isActive createdAt updatedAt lastLogin');
 
       if (!localUser) {
-        return res.status(404).json({
-          success: false,
-          message: 'Candidate not found',
-        });
-      }
+        const mirroredCandidate = await getMirroredCandidateById(chartersUserId);
+        if (!mirroredCandidate) {
+          return res.status(404).json({
+            success: false,
+            message: 'Candidate not found',
+          });
+        }
 
-      candidate = toLocalCandidateShape(localUser);
-      usedLocalFallback = true;
+        candidate = mirroredCandidate;
+        usedLocalFallback = true;
+      } else {
+        candidate = toLocalCandidateShape(localUser);
+        usedLocalFallback = true;
+      }
     }
 
     const existing = await CandidateAccess.findOne({ chartersUserId });
@@ -621,7 +672,7 @@ exports.getPermissions = async (req, res, next) => {
     try {
       candidate = await chartersAdminService.getCandidateById(getServiceActor(req), chartersUserId);
     } catch (error) {
-      if (!shouldFallbackToLocal(error)) {
+      if (!shouldFallbackToLocal(error, { allowRateLimitedFallback: true })) {
         throw error;
       }
 
