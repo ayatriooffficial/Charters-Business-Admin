@@ -179,20 +179,6 @@ export const AuthProvider = ({ children }) => {
     setUser(updatedUser);
   };
 
-  // Clear token on tab close
-  useEffect(() => {
-    const handleUnload = () => {
-      try {
-        sessionStorage.removeItem('token');
-      } catch {
-        // ignore
-      }
-    };
-
-    window.addEventListener('beforeunload', handleUnload);
-    return () => window.removeEventListener('beforeunload', handleUnload);
-  }, []);
-
   return (
     <AuthContext.Provider
       value={{
