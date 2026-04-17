@@ -2,7 +2,7 @@ const aiInterviewService = require('../services/aiInterviewService');
 
 exports.getModuleHealth = async (req, res, next) => {
   try {
-    const result = await aiInterviewService.healthCheck();
+    const result = await aiInterviewService.healthCheck({ user: req.user });
     res.status(200).json({
       success: true,
       module: 'aiInterview',
