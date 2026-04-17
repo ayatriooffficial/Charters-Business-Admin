@@ -201,13 +201,10 @@ export const recruitmentAdminService = {
     const response = await requestWithFallback(
       [
         () => api.get('/admin/jobs/my-postings'),
-        () => api.get('/admin/jobs'),
-        () => api.get('/jobs'),
-        () => api.get('/jobs/my-postings'),
       ],
-      'Job postings endpoint is not available on this backend.'
+      'My job postings endpoint is not available on this backend.'
     );
-    console.log(response)
+
     return toArray(getCollectionFromResponse(response, ['jobPostings', 'jobs', 'data']));
   },
 
@@ -265,11 +262,8 @@ export const recruitmentAdminService = {
     const response = await requestWithFallback(
       [
         () => api.get('/admin/internships/my-postings'),
-        () => api.get('/admin/internships'),
-        () => api.get('/internships/my-postings'),
-        () => api.get('/internships')
       ],
-      'Internship postings endpoint is not available on this backend.'
+      'My internship postings endpoint is not available on this backend.'
     );
 
     return toArray(getCollectionFromResponse(response, ['internshipPostings', 'internships', 'data']));
@@ -335,5 +329,4 @@ export const recruitmentAdminService = {
     'Update application status endpoint is not available on this backend.'
   )
 };
-
 

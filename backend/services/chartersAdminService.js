@@ -745,6 +745,16 @@ const chartersAdminService = {
     }
   },
 
+  async getMyJobs(actorContext, params = {}) {
+    try {
+      const client = createClient(actorContext);
+      const response = await requestWithRetry(client, 'get', '/api/internal/admin/jobs/my-postings', { params });
+      return extractPayload(response) || {};
+    } catch (error) {
+      throw toServiceError(error, 'Failed to fetch your jobs from Charters');
+    }
+  },
+
   async getJobById(actorContext, id) {
     try {
       const client = createClient(actorContext);
@@ -796,6 +806,16 @@ const chartersAdminService = {
       return extractPayload(response) || {};
     } catch (error) {
       throw toServiceError(error, 'Failed to fetch internships from Charters');
+    }
+  },
+
+  async getMyInternships(actorContext, params = {}) {
+    try {
+      const client = createClient(actorContext);
+      const response = await requestWithRetry(client, 'get', '/api/internal/admin/internships/my-postings', { params });
+      return extractPayload(response) || {};
+    } catch (error) {
+      throw toServiceError(error, 'Failed to fetch your internships from Charters');
     }
   },
 

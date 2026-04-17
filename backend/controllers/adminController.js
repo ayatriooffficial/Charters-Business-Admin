@@ -1082,6 +1082,22 @@ exports.getJobs = async (req, res, next) => {
       success: true,
       jobPostings: payload.jobs || [],
       pagination: payload.pagination || null,
+      source: 'charters',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getMyJobs = async (req, res, next) => {
+  try {
+    const payload = await chartersAdminService.getMyJobs(getServiceActor(req), req.query || {});
+
+    res.status(200).json({
+      success: true,
+      jobPostings: payload.jobs || [],
+      pagination: payload.pagination || null,
+      source: 'charters',
     });
   } catch (error) {
     next(error);
@@ -1188,6 +1204,21 @@ exports.getInternships = async (req, res, next) => {
       success: true,
       internshipPostings: payload.internships || [],
       pagination: payload.pagination || null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getMyInternships = async (req, res, next) => {
+  try {
+    const payload = await chartersAdminService.getMyInternships(getServiceActor(req), req.query || {});
+
+    res.status(200).json({
+      success: true,
+      internshipPostings: payload.internships || [],
+      pagination: payload.pagination || null,
+      source: 'charters',
     });
   } catch (error) {
     next(error);

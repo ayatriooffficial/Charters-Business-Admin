@@ -7,12 +7,14 @@ const {
   elevateUserToCandidate,
   deleteCandidate,
   getJobs,
+  getMyJobs,
   getJobById,
   createJob,
   updateJob,
   deleteJob,
   getApplicationsForJob,
   getInternships,
+  getMyInternships,
   getInternshipById,
   createInternship,
   updateInternship,
@@ -35,7 +37,7 @@ router.patch('/users/:id/elevate-candidate', elevateUserToCandidate);
 router.delete('/users/:id', deleteCandidate);
 
 router.get('/jobs', getJobs);
-router.get('/jobs/my-postings', getJobs);
+router.get('/jobs/my-postings', getMyJobs);
 router.get('/jobs/:id', getJobById);
 router.post('/jobs', createJob);
 router.put('/jobs/:id', updateJob);
@@ -44,7 +46,7 @@ router.delete('/jobs/:id', deleteJob);
 router.get('/jobs/:id/applications', getApplicationsForJob);
 
 router.get('/internships', getInternships);
-router.get('/internships/my-postings', getInternships);
+router.get('/internships/my-postings', getMyInternships);
 router.get('/internships/:id', getInternshipById);
 router.post('/internships', createInternship);
 router.put('/internships/:id', updateInternship);
