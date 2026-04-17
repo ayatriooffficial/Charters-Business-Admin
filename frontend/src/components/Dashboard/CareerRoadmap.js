@@ -74,7 +74,7 @@ const CareerRoadmap = () => {
         return { steps, currentStep, isEnrolled };
     }, [applications, counselings, user]);
 
-    const { steps, currentStep, isEnrolled } = roadmapState;
+    const { steps, currentStep } = roadmapState;
 
     const handleNextStep = async () => {
         const code = await generateRedirectCode();

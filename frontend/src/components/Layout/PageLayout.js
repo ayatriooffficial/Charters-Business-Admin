@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import BrandMark from '../Common/BrandMark';
 
 export default function PageLayout({ children, title, subtitle, actions, fullWidth = false }) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const homeRoute = user?.role === 'admin' ? '/admin' : '/home';
@@ -51,7 +51,7 @@ export default function PageLayout({ children, title, subtitle, actions, fullWid
             padding: '14px 24px'
           }}
         >
-          {/* LEFT — LOGO */}
+          {/* LEFT â€” LOGO */}
           <div
             style={{ cursor: 'pointer' }}
             onClick={() => navigate(homeRoute)}
@@ -59,10 +59,10 @@ export default function PageLayout({ children, title, subtitle, actions, fullWid
             <BrandMark compact />
           </div>
 
-          {/* RIGHT — USER PANEL */}
+          {/* RIGHT â€” USER PANEL */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 
-            {/* 🔥 Admin Button */}
+            {/* ðŸ”¥ Admin Button */}
             {user?.role === 'admin' && (
               <button
                 onClick={() => navigate('/admin')}
@@ -81,7 +81,7 @@ export default function PageLayout({ children, title, subtitle, actions, fullWid
               </button>
             )}
 
-            {/* 🔥 Home Button - contextual visibility */}
+            {/* ðŸ”¥ Home Button - contextual visibility */}
             {isProfileWorkspace && (
               <button
                 onClick={() => navigate(homeRoute)}

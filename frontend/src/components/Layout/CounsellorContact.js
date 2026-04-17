@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { RiMailLine, RiPhoneLine, RiTimeLine, RiMapPinUserLine } from 'react-icons/ri';
 import Card from '../Common/Card';
 

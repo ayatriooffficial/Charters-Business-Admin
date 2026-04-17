@@ -1,5 +1,5 @@
 import React from 'react';
-import { RiRocket2Line, RiMagicLine, RiArrowRightLine } from 'react-icons/ri';
+import { RiMagicLine, RiArrowRightLine } from 'react-icons/ri';
 
 const EnrollmentHero = ({ user, onApply }) => {
     const isCandidate = user?.role === 'candidate' || user?.role === 'admin';
@@ -79,7 +79,7 @@ const BenefitItem = ({ text }) => (
             justifyContent: 'center',
             fontSize: '10px'
         }}>
-            ✓
+            âœ“
         </div>
         {text}
     </li>

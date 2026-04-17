@@ -1,4 +1,4 @@
-// ─── Issuer Tier Database ─────────────────────────────────────────
+// â”€â”€â”€ Issuer Tier Database â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Each tier has a base point value per certification
 
 export const ISSUER_TIERS = {
@@ -12,7 +12,7 @@ export const ISSUER_TIERS = {
       'google', 'aws', 'amazon web services', 'microsoft', 'meta', 'facebook',
       'apple', 'ibm', 'oracle', 'cisco', 'comptia', 'pmi', 'salesforce',
       'red hat', 'vmware', 'kubernetes', 'linux foundation', 'cncf',
-      'isaca', 'isc2', '(isc)²', 'ec-council', 'sans institute',
+      'isaca', 'isc2', '(isc)Â²', 'ec-council', 'sans institute',
       'harvard', 'mit', 'stanford', 'yale', 'princeton', 'oxford',
       'cambridge', 'carnegie mellon', 'caltech', 'iit', 'nit',
       'databricks', 'snowflake', 'hashicorp', 'docker', 'nvidia',
@@ -46,7 +46,7 @@ export const ISSUER_TIERS = {
   }
 };
 
-// ─── Platform Tiers for Courses ───────────────────────────────────
+// â”€â”€â”€ Platform Tiers for Courses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const PLATFORM_TIERS = {
   tier1: {
     label: 'Premium',
@@ -76,18 +76,18 @@ export const PLATFORM_TIERS = {
   }
 };
 
-// ─── Duration Keywords ────────────────────────────────────────────
-// Used when no expiry date is available — detect from title
+// â”€â”€â”€ Duration Keywords â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Used when no expiry date is available â€” detect from title
 const LONG_DURATION_KEYWORDS   = ['specialization', 'nanodegree', 'professional certificate', 'bootcamp', 'fellowship', 'residency', 'degree'];
 const MEDIUM_DURATION_KEYWORDS = ['course', 'program', 'training', 'certification track', 'learning path', 'masterclass'];
 const SHORT_DURATION_KEYWORDS  = ['workshop', 'webinar', 'tutorial', 'crash course', 'intro', 'introduction', 'basics', 'fundamentals'];
 
-// ─── Research Venue Tiers ─────────────────────────────────────────
+// â”€â”€â”€ Research Venue Tiers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const TIER1_VENUES = ['ieee', 'acm', 'nature', 'science', 'cell', 'lancet', 'nejm', 'arxiv', 'neurips', 'icml', 'cvpr', 'iclr', 'aaai', 'elsevier', 'springer'];
 const TIER2_VENUES = ['researchgate', 'academia', 'ssrn', 'hindawi', 'mdpi', 'plos', 'frontiers'];
 
 
-// ─── Core Scoring Functions ───────────────────────────────────────
+// â”€â”€â”€ Core Scoring Functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Get issuer tier for a given issuer string
@@ -119,7 +119,7 @@ export const getPlatformTier = (platform = '') => {
 
 /**
  * Estimate duration category from expiry - issue dates OR title keywords
- * Returns: 'long' (12+ months) | 'medium' (3–12 months) | 'short' (<3 months) | 'unknown'
+ * Returns: 'long' (12+ months) | 'medium' (3â€“12 months) | 'short' (<3 months) | 'unknown'
  */
 export const estimateDuration = (issueDate, expiryDate, title = '') => {
   // Try date-based duration first
@@ -160,7 +160,7 @@ export const isRecent = (issueDate) => {
 };
 
 /**
- * Score a single certification — returns points + breakdown
+ * Score a single certification â€” returns points + breakdown
  */
 export const scoreCertification = (cert) => {
   const breakdown = [];
@@ -181,13 +181,13 @@ export const scoreCertification = (cert) => {
   total += durationPts;
   breakdown.push({
     label:  duration === 'long'   ? 'Duration: 12+ months'  :
-            duration === 'medium' ? 'Duration: 3–12 months' :
+            duration === 'medium' ? 'Duration: 3â€“12 months' :
             duration === 'short'  ? 'Duration: <3 months'   : 'Duration: Standard',
     points: durationPts,
     color:  duration === 'long' ? '#22d3a0' : duration === 'medium' ? '#6c63ff' : '#ff9f43'
   });
 
-  // 3. Verifiability — has credential URL
+  // 3. Verifiability â€” has credential URL
   if (cert.credentialUrl) {
     total += 1;
     breakdown.push({ label: 'Verifiable URL', points: 1, color: '#22d3a0' });
@@ -223,7 +223,7 @@ export const scoreCertification = (cert) => {
 };
 
 /**
- * Score a single course — returns points + breakdown
+ * Score a single course â€” returns points + breakdown
  */
 export const scoreCourse = (course) => {
   const breakdown = [];
@@ -336,7 +336,7 @@ export const calculateTotalCredentialsScore = (certifications = [], courses = []
   return Math.min(20, Math.round(raw)); // cap at 20 (max in scoring system)
 };
 
-// ─── LinkedIn & Form Validation Utilities (moved here to consolidate) ───
+// â”€â”€â”€ LinkedIn & Form Validation Utilities (moved here to consolidate) â”€â”€â”€
 
 /**
  * Parse formatted number input (e.g., "5K", "1.2M") to integer
@@ -435,7 +435,7 @@ export const validateSkill = (skill) => {
   if (!skill) return false;
 
   const trimmed = skill.trim();
-  return /^[a-zA-Z0-9\s\-\.]{2,50}$/.test(trimmed);
+  return /^[a-zA-Z0-9\s.-]{2,50}$/.test(trimmed);
 };
 
 export const sanitizeSkills = (skillsInput) => {

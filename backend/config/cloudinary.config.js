@@ -1,9 +1,6 @@
-import { v2 as cloudinary } from "cloudinary";
-import dotenv from "dotenv";
+const { v2: cloudinary } = require('cloudinary');
+require('dotenv').config();
 
-dotenv.config();
-
-// Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -11,15 +8,14 @@ cloudinary.config({
   secure: true,
 });
 
-// Validate configuration
 if (
   !process.env.CLOUDINARY_CLOUD_NAME ||
   !process.env.CLOUDINARY_API_KEY ||
   !process.env.CLOUDINARY_API_SECRET
 ) {
   console.warn(
-    "⚠️  Cloudinary credentials not found in environment variables. Resume uploads will fail."
+    'Cloudinary credentials not found in environment variables. Resume uploads will fail.'
   );
 }
 
-export default cloudinary;
+module.exports = cloudinary;

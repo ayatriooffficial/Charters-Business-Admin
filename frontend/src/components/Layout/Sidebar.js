@@ -7,7 +7,7 @@ import {
   RiRobotLine, RiLogoutBoxLine, RiMenuFoldLine,
   RiMenuUnfoldLine, RiUser3Line, RiSettings3Line,
   RiBriefcaseLine, RiBookOpenLine, RiLock2Line,
-  RiFileList3Line, RiChatVoiceLine
+  RiChatVoiceLine
 } from 'react-icons/ri';
 
 const PROFILE_NAV_ITEMS = [

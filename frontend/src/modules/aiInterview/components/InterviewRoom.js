@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   RiCameraLine,
   RiMicLine,
-  RiRobotLine,
   RiSignalWifiErrorLine,
   RiStopCircleLine,
   RiTimerLine,
