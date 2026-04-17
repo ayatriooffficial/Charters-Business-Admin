@@ -2,133 +2,60 @@ import React from 'react';
 import { RiRocket2Line, RiMagicLine, RiArrowRightLine } from 'react-icons/ri';
 
 const EnrollmentHero = ({ user, onApply }) => {
-    return (
-        <section style={{
-            background: 'linear-gradient(135deg, var(--navy) 0%, #1e293b 100%)',
-            borderRadius: '0',
-            padding: '20px 0',
-            color: '#fff',
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: 'none',
-            minHeight: '500px',
-            display: 'flex',
-            alignItems: 'center'
-        }}>
-            {/* Background Decorative Elements */}
-            <div style={{
-                position: 'absolute',
-                top: '-10%',
-                right: '-5%',
-                width: '300px',
-                height: '300px',
-                background: 'rgba(179, 4, 55, 0.1)',
-                borderRadius: '50%',
-                filter: 'blur(60px)',
-                zIndex: 0
-            }} />
+    const isCandidate = user?.role === 'candidate' || user?.role === 'admin';
 
-            <div style={{ 
-                position: 'relative', 
-                zIndex: 1, 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                flexWrap: 'wrap', 
-                gap: '32px',
-                padding: '0 5%'
-            }}>
-                <div style={{ flex: '1 1 400px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                        <span style={{ 
-                            background: 'rgba(255, 255, 255, 0.1)', 
-                            padding: '6px 14px', 
-                            borderRadius: '99px',
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            letterSpacing: '0.05em',
-                            textTransform: 'uppercase',
-                            backdropFilter: 'blur(4px)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)'
-                        }}>
-                            Next Step: Enrollment
+    return (
+        <section className="bg-black rounded-none py-5 text-white relative overflow-hidden flex items-center min-h-[500px]">
+            {/* Background Decorative Elements */}
+            <div className="absolute -top-[10%] -right-[5%] w-[300px] height-[300px] bg-accent/10 rounded-full blur-[60px] z-0" />
+
+            <div className="relative z-10 flex justify-between items-center flex-wrap gap-8 px-6">
+                <div className="flex-1 min-w-[400px]">
+                    <div className="flex items-center gap-3 mb-4">
+                        <span className="bg-white/10 px-[14px] py-1.5 rounded-none text-[12px] font-bold tracking-wider uppercase backdrop-blur-sm border border-white/10">
+                            {isCandidate ? 'Status: Enrolled' : 'Next Step: Enrollment'}
                         </span>
                     </div>
 
-                    <h1 style={{ 
-                        fontSize: 'clamp(32px, 4vw, 42px)', 
-                        fontWeight: 800, 
-                        lineHeight: 1.1, 
-                        marginBottom: '20px',
-                        fontFamily: 'var(--font-display)' 
-                    }}>
-                        Hey {user?.firstName || 'there'}, your future in <span style={{ color: 'var(--accent-light)' }}>{user?.selectedCourse || 'your dream field'}</span> starts now.
+                    <h1 className="text-[clamp(32px,4vw,42px)] font-extrabold leading-[1.1] mb-5 font-display">
+                        {isCandidate 
+                            ? <>Congratulations {user?.firstName || 'there'}, your journey in <span className="text-accent-light">{user?.selectedCourse || 'your field'}</span> has officially begun.</>
+                            : <>Hey {user?.firstName || 'there'}, your future in <span className="text-accent-light">{user?.selectedCourse || 'your dream field'}</span> starts now.</>
+                        }
                     </h1>
 
-                    <p style={{ 
-                        fontSize: '18px', 
-                        opacity: 0.9, 
-                        lineHeight: 1.6, 
-                        marginBottom: '32px',
-                        maxWidth: '540px' 
-                    }}>
-                        You've expressed interest in our prestigious {user?.selectedCourse} program. 
-                        Begin your application today to lock in priority reviews and early-bird counseling.
+                    <p className="text-[18px] opacity-90 leading-relaxed mb-8 max-w-[540px]">
+                        {isCandidate 
+                            ? `You are now a part of our prestigious ${user?.selectedCourse} program. We're excited to support your professional growth.`
+                            : `You've expressed interest in our prestigious ${user?.selectedCourse} program. Begin your application today to lock in priority reviews and early-bird counseling.`
+                        }
                     </p>
 
-                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                        <button
-                            onClick={onApply}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '12px',
-                                background: 'linear-gradient(180deg, var(--accent-light), var(--accent))',
-                                color: '#white',
-                                fontWeight: 800,
-                                padding: '16px 32px',
-                                borderRadius: '16px',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontSize: '16px',
-                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                boxShadow: '0 10px 20px rgba(179, 4, 55, 0.3)',
-                                textDecoration: 'none'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
-                                e.currentTarget.style.boxShadow = '0 15px 30px rgba(179, 4, 55, 0.4)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'none';
-                                e.currentTarget.style.boxShadow = '0 10px 20px rgba(179, 4, 55, 0.3)';
-                            }}
-                        >
-                            Start Application
-                            <RiArrowRightLine style={{ fontSize: '20px' }} />
-                        </button>
+                    {!isCandidate && (
+                        <div className="flex gap-4 flex-wrap">
+                            <button
+                                onClick={onApply}
+                                className="flex items-center gap-3 bg-gradient-to-b from-accent-light to-accent text-white font-extrabold px-8 py-4 rounded-none border-none cursor-pointer text-base transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02]"
+                            >
+                                Start Application
+                                <RiArrowRightLine className="text-[20px]" />
+                            </button>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600 }}>
-                                <RiMagicLine style={{ color: 'var(--accent-light)' }} />
-                                5-Min Process
+                            <div className="flex flex-col justify-center">
+                                <div className="flex items-center gap-2 text-sm font-bold">
+                                    <RiMagicLine className="text-accent-light" />
+                                    5-Min Process
+                                </div>
+                                <div className="text-[12px] opacity-70">Secure & SSO Enabled</div>
                             </div>
-                            <div style={{ fontSize: '12px', opacity: 0.7 }}>Secure & SSO Enabled</div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Benefits List Card */}
-                <div style={{
-                    flex: '0 1 300px',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    padding: '32px',
-                    borderRadius: '24px',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
-                }}>
-                    <h4 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>Why apply today?</h4>
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="flex-initial w-[300px] bg-white/5 p-8 rounded-none backdrop-blur-[10px] border border-white/10">
+                    <h4 className="text-[18px] font-bold mb-5">Why apply today?</h4>
+                    <ul className="list-none p-0 m-0 flex flex-col gap-4">
                         <BenefitItem text="Priority Counsellor Match" />
                         <BenefitItem text="Application Fee Waiver" />
                         <BenefitItem text="Early-Bird Scholarships" />
@@ -145,7 +72,7 @@ const BenefitItem = ({ text }) => (
         <div style={{ 
             width: '20px', 
             height: '20px', 
-            borderRadius: '50%', 
+            borderRadius: '0', 
             background: 'var(--accent)', 
             display: 'flex', 
             alignItems: 'center', 

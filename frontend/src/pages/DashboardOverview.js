@@ -25,25 +25,20 @@ const DashboardOverview = () => {
             subtitle={null}
             fullWidth={true}
         >
-            <div style={{ 
-                width: '100%', 
-                display: 'flex', 
-                flexDirection: 'column',
-                background: 'transparent'
-            }}>
+            <div className="w-full flex flex-col bg-transparent">
                 
                 {/* 1. Enrollment Hero CTA (Full Bleed) */}
-                <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <div className="border-b border-border">
                     <EnrollmentHero user={user} onApply={handleApply} />
                 </div>
 
                 {/* 2. Career Roadmap (Full Width Visual Path) */}
-                <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <div className="border-b border-border">
                     <CareerRoadmap currentStep={2} />
                 </div>
 
                 {/* 3. Professional Support (Horizontal row with separators) */}
-                <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <div className="border-b border-border">
                     <ContactSection />
                 </div>
 

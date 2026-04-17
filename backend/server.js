@@ -48,6 +48,8 @@ const DEFAULT_ALLOWED_ORIGINS = [
   'https://charters-business-admin.vercel.app',
   'http://localhost:3001',
   'http://127.0.0.1:3001',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
 ];
 const DEFAULT_ALLOWED_ORIGIN_PATTERNS = [
   /^https:\/\/charters-business-admin-[a-z0-9-]+\.vercel\.app$/i,

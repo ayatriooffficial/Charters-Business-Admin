@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import 'react-circular-progressbar/dist/styles.css';
 
@@ -29,10 +33,10 @@
   --text-muted: #8f9aa8;
   --border: #e7e0d8;
   --border-hover: #d6ccc0;
-  --shadow-md: 0 10px 30px rgba(22, 37, 61, 0.08);
-  --shadow-lg: 0 18px 50px rgba(22, 37, 61, 0.1);
-  --radius: 18px;
-  --radius-sm: 12px;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --radius: 0px;
+  --radius-sm: 0px;
 }
 
 * {

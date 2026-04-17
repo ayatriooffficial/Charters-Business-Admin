@@ -51,16 +51,28 @@ export default function Sidebar() {
     || Object.values(user?.permissions?.aiInterview || {}).some(Boolean)
   );
 
-  const homeNavItems = [
-    { to: '/dashboard-overview', icon: RiDashboardLine, label: 'Dashboard' },
-    { to: '/counseling', icon: RiChatVoiceLine, label: 'Counseling' },
-    { to: '/profile', icon: RiUser3Line, label: 'Profile' },
-    { to: '/home', icon: RiUser3Line, label: 'Account' },
-    { to: '/dashboard', icon: RiDashboardLine, label: 'Profile Dashboard' },
-    hasAiInterviewAccess
-      ? { to: '/ai-interview', icon: RiRobotLine, label: 'AI Interview' }
-      : { icon: RiRobotLine, label: 'AI Interview', disabled: true, note: 'Access required' }
-  ];
+  const isCandidate = user?.role === 'candidate' || user?.role === 'admin';
+
+  let homeNavItems = [];
+
+  if (isCandidate) {
+    homeNavItems = [
+      { to: '/home', icon: RiUser3Line, label: 'Account' },
+      { to: '/dashboard', icon: RiDashboardLine, label: 'Profile Dashboard' },
+      { to: '/dashboard-overview', icon: RiDashboardLine, label: 'Status' },
+      { to: '/counseling', icon: RiChatVoiceLine, label: 'Counseling' },
+      { to: '/profile', icon: RiUser3Line, label: 'User Info' },
+      ...(hasAiInterviewAccess
+        ? [{ to: '/ai-interview', icon: RiRobotLine, label: 'AI Interview' }]
+        : [{ icon: RiRobotLine, label: 'AI Interview', disabled: true, note: 'Access required' }])
+    ];
+  } else {
+    homeNavItems = [
+      { to: '/dashboard-overview', icon: RiDashboardLine, label: 'Dashboard' },
+      { to: '/counseling', icon: RiChatVoiceLine, label: 'Counseling' },
+      { to: '/profile', icon: RiUser3Line, label: 'Profile' }
+    ];
+  }
 
   const isHome = pathname === '/home';
   const isProfileWorkspace = PROFILE_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));

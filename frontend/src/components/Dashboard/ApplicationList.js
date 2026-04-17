@@ -21,32 +21,12 @@ const ApplicationList = () => {
     const isEmpty = !applications || applications.length === 0;
 
     return (
-        <div style={{ padding: '48px 0', background: '#fff' }}>
+        <div className="bg-white">
             {isEmpty ? (
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '60px 24px',
-                    background: 'var(--surface-tint)',
-                    borderRadius: 0,
-                    border: '1px solid var(--border)',
-                    margin: '0 5%'
-                }}>
-                    {/* ... internal content ... */}
-                    <div style={{
-                        width: '80px',
-                        height: '80px',
-                        background: '#f3f4f6',
-                        borderRadius: '0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: '24px'
-                    }}>
+                <div className="flex flex-col items-center justify-center py-[60px] px-6 bg-background-card rounded-none border border-border">
+                    <div className="w-20 h-20 bg-[#f3f4f6] rounded-none flex items-center justify-center mb-6">
                         <svg
-                            style={{ width: '40px', height: '40px', color: '#9ca3af' }}
+                            className="w-10 h-10 text-[#9ca3af]"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -59,47 +39,33 @@ const ApplicationList = () => {
                             />
                         </svg>
                     </div>
-                    <p style={{ 
-                        color: 'var(--text-secondary)', 
-                        fontSize: '1.125rem', 
-                        marginBottom: '32px', 
-                        textAlign: 'center', 
-                        maxWidth: '500px',
-                        lineHeight: 1.6
-                    }}>
-                        You haven't applied for your success yet! Your dream career in <strong>{user?.selectedCourse || 'your chosen field'}</strong> is just one application away. Let's get started!
+                    <p className="text-text-secondary text-[1.125rem] mb-8 text-center max-w-[500px] leading-relaxed">
+                        {user?.role === 'candidate' || user?.role === 'admin'
+                            ? `You are officially enrolled in the ${user?.selectedCourse || 'your chosen field'} program. Any formal application tracking will appear here.`
+                            : `You haven't applied for your success yet! Your dream career in ${user?.selectedCourse || 'your chosen field'} is just one application away. Let's get started!`
+                        }
                     </p>
-                    <button
-                        onClick={async () => {
-                            const code = await generateRedirectCode();
-                            if (code) {
-                                window.location.href = `${MAIN_APP_URL}/apply?code=${code}`;
-                            } else {
-                                alert("Failed to generate redirection. Please try again.");
-                            }
-                        }}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            background: 'linear-gradient(180deg, var(--accent-light), var(--accent))',
-                            color: 'white',
-                            fontWeight: 700,
-                            padding: '12px 28px',
-                            borderRadius: '12px',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: '15px'
-                        }}
-                    >
-                        Apply Now
-                    </button>
+                    {user?.role !== 'candidate' && user?.role !== 'admin' && (
+                        <button
+                            onClick={async () => {
+                                const code = await generateRedirectCode();
+                                if (code) {
+                                    window.location.href = `${MAIN_APP_URL}/apply?code=${code}`;
+                                } else {
+                                    alert("Failed to generate redirection. Please try again.");
+                                }
+                            }}
+                            className="flex items-center gap-2 bg-gradient-to-b from-accent-light to-accent text-white font-bold px-[28px] py-3 rounded-none border-none cursor-pointer text-[15px]"
+                        >
+                            Apply Now
+                        </button>
+                    )}
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', padding: '0 5%' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Application Status</h2>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: 0 }}>
+                <div className="flex flex-col gap-8 px-6">
+                    <div className="flex flex-col gap-2">
+                        <h2 className="text-[1.25rem] font-extrabold text-text-primary m-0 uppercase tracking-wider">Application Status</h2>
+                        <p className="text-text-secondary text-[0.875rem] m-0">
                             You have {applications.length} active application{applications.length > 1 ? 's' : ''}
                         </p>
                     </div>
@@ -107,37 +73,29 @@ const ApplicationList = () => {
                     {applications.map((application, index) => (
                         <article
                             key={application.applicationNumber || index}
-                            style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                background: '#fff',
-                                border: '1px solid var(--border)',
-                                borderRadius: 0,
-                                overflow: 'hidden'
-                            }}
+                            className="flex flex-col bg-white border border-border rounded-none overflow-hidden"
                         >
-                            {/* ... internal card content ... */}
-                            <div style={{ display: 'flex', flexDirection: 'column', padding: '24px', gap: '20px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
-                                    <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                            <div className="flex flex-col p-6 gap-5">
+                                <div className="flex flex-col gap-1 pb-4 border-b border-border">
+                                    <h3 className="text-[1.125rem] font-bold text-text-primary m-0">
                                         {application.program || 'Program Not Specified'}
                                     </h3>
-                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, letterSpacing: '0.05em' }}>
+                                    <p className="text-[0.75rem] text-text-muted m-0 tracking-wider uppercase">
                                         ID: #{application.applicationNumber}
                                     </p>
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Program</span>
-                                        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right' }}>
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[0.8125rem] text-text-muted">Program</span>
+                                        <span className="text-[0.8125rem] font-semibold text-text-primary text-right">
                                             {application.program || 'N/A'}
                                         </span>
                                     </div>
 
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Submitted On</span>
-                                        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[0.8125rem] text-text-muted">Submitted On</span>
+                                        <span className="text-[0.8125rem] font-semibold text-text-primary">
                                             {formatDate(application.createdAt)}
                                         </span>
                                     </div>

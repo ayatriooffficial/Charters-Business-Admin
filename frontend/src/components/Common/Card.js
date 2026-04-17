@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function Card({
   children, style = {}, hover = true,
-  accent, padding = '24px', onClick
+  accent, padding = '24px', onClick, className = ""
 }) {
   const [hovered, setHovered] = React.useState(false);
   const borderColor = hovered ? 'var(--border-hover)' : 'var(--border)';
@@ -21,6 +21,7 @@ export default function Card({
       onClick={onClick}
       onMouseEnter={() => hover && setHovered(true)}
       onMouseLeave={() => hover && setHovered(false)}
+      className={className}
       style={{
         background: 'var(--bg-card)',
         border: `1px solid ${borderColor}`,
@@ -29,9 +30,7 @@ export default function Card({
         cursor: onClick ? 'pointer' : 'default',
         transition: 'all 0.2s ease',
         transform: hovered && onClick ? 'translateY(-2px)' : 'none',
-        boxShadow: shadowParts.length
-          ? ['var(--shadow-md)', ...shadowParts].join(', ')
-          : 'var(--shadow-md)',
+        boxShadow: 'none',
         ...style
       }}
     >
