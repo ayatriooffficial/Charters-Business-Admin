@@ -33,6 +33,72 @@ const normalizeText = (value) => String(value || '')
   .replace(/\s+/g, ' ')
   .trim();
 
+const LIVEKIT_VALIDATE_TIMEOUT_MS = 8000;
+
+const normalizeLiveKitHttpUrl = (wsUrl) => normalizeText(wsUrl)
+  .replace(/\/+$/, '')
+  .replace(/^wss:\/\//i, 'https://')
+  .replace(/^ws:\/\//i, 'http://');
+
+const readLiveKitErrorMessage = (payload, status) => {
+  if (payload && typeof payload === 'string') {
+    const text = normalizeText(payload);
+    if (text) return text;
+  }
+
+  if (payload && typeof payload === 'object') {
+    const message = normalizeText(
+      payload.message
+      || payload.error
+      || payload.details
+    );
+    if (message) return message;
+  }
+
+  return `LiveKit returned status ${status}`;
+};
+
+const validateLiveKitToken = async ({ wsUrl, token }) => {
+  const baseUrl = normalizeLiveKitHttpUrl(wsUrl);
+  if (!baseUrl || !token) {
+    return {
+      attempted: false,
+      valid: false,
+      statusCode: null,
+      message: 'Missing LiveKit URL or token',
+    };
+  }
+
+  try {
+    const response = await axios.get(`${baseUrl}/rtc/v1/validate`, {
+      params: { access_token: token },
+      timeout: LIVEKIT_VALIDATE_TIMEOUT_MS,
+      validateStatus: () => true,
+    });
+
+    const valid = response.status >= 200 && response.status < 300;
+    return {
+      attempted: true,
+      valid,
+      statusCode: response.status,
+      message: valid
+        ? 'LiveKit token validated successfully'
+        : readLiveKitErrorMessage(response.data, response.status),
+    };
+  } catch (error) {
+    return {
+      attempted: true,
+      valid: false,
+      statusCode: error?.response?.status || null,
+      message: normalizeText(
+        error?.response?.data?.message
+        || error?.response?.data?.error
+        || error?.message
+      ) || 'LiveKit validation request failed',
+    };
+  }
+};
+
 const countFillers = (text) => (text.match(FILLER_PATTERN) || []).length;
 
 const extractGeminiText = (payload) => payload?.candidates?.[0]?.content?.parts
@@ -241,7 +307,7 @@ const buildIdentity = (user) => {
 };
 
 const aiInterviewService = {
-  async healthCheck() {
+  async healthCheck({ user } = {}) {
     const livekitConfigured = Boolean(
       normalizeText(process.env.LIVEKIT_URL)
       && normalizeText(process.env.LIVEKIT_API_KEY)
@@ -256,18 +322,62 @@ const aiInterviewService = {
       )
     );
 
+    const issues = [];
+    if (livekitImportError) {
+      issues.push(`LiveKit SDK unavailable: ${livekitImportError.message}`);
+    }
+
+    let livekitTokenValidation = {
+      attempted: false,
+      valid: false,
+      statusCode: null,
+      message: 'Skipped: LiveKit token validation requires a configured LiveKit setup',
+    };
+
+    if (livekitConfigured && AccessToken) {
+      try {
+        const probeToken = await aiInterviewService.createInterviewToken({
+          roomId: `health-${Date.now().toString(36)}`,
+          user: user || {
+            role: 'admin',
+            chartersUserId: 'health-check',
+            name: 'Health Check',
+          },
+        });
+
+        livekitTokenValidation = await validateLiveKitToken({
+          wsUrl: probeToken.wsUrl,
+          token: probeToken.token,
+        });
+      } catch (error) {
+        livekitTokenValidation = {
+          attempted: false,
+          valid: false,
+          statusCode: error?.status || error?.response?.status || null,
+          message: normalizeText(error?.message) || 'LiveKit probe token generation failed',
+        };
+      }
+    }
+
+    if (!livekitTokenValidation.valid) {
+      issues.push(`LiveKit token validation failed: ${livekitTokenValidation.message}`);
+    }
+
+    const livekitReady = livekitConfigured && Boolean(AccessToken) && livekitTokenValidation.valid;
+
     return {
-      status: livekitConfigured && AccessToken ? 'ready' : 'degraded',
-      message: livekitConfigured && AccessToken
+      status: livekitReady ? 'ready' : 'degraded',
+      message: livekitReady
         ? 'AI interview module is ready'
         : 'AI interview module loaded with fallback mode',
       checks: {
         livekitSdkInstalled: Boolean(AccessToken),
         livekitConfigured,
+        livekitTokenValidation,
         geminiConfigured,
         faceTrackingModelPath: '/face-api-models',
       },
-      issues: livekitImportError ? [`LiveKit SDK unavailable: ${livekitImportError.message}`] : [],
+      issues,
       timestamp: new Date().toISOString(),
     };
   },

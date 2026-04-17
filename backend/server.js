@@ -127,6 +127,7 @@ app.use((req, res, next) => {
   const start = Date.now();
 
   res.on('finish', () => {
+    const durationMs = Date.now() - start;
     const payload = {
       level: 'info',
       type: 'request',
@@ -134,13 +135,41 @@ app.use((req, res, next) => {
       method: req.method,
       path: req.originalUrl,
       statusCode: res.statusCode,
-      durationMs: Date.now() - start,
+      durationMs,
       timestamp: new Date().toISOString(),
       ip: req.ip,
       userAgent: req.headers['user-agent'] || null,
     };
 
     console.log(JSON.stringify(payload));
+
+    if (res.statusCode === 403 || res.statusCode === 429) {
+      const alertPayload = {
+        level: 'warn',
+        type: 'request_alert',
+        reason: res.statusCode === 403 ? 'forbidden' : 'rate_limited',
+        requestId: req.requestId || null,
+        method: req.method,
+        path: req.originalUrl,
+        statusCode: res.statusCode,
+        durationMs,
+        timestamp: new Date().toISOString(),
+        ip: req.ip,
+        origin: req.headers.origin || null,
+        retryAfter: res.getHeader('retry-after') || null,
+        hasAuthorization: typeof req.headers.authorization === 'string',
+        hasServiceKey: typeof req.headers['x-service-key'] === 'string',
+        serviceKeyId: req.headers['x-service-key-id'] || null,
+        actorRole: req.user?.role || req.internalActor?.role || null,
+        actorId:
+          req.user?.chartersUserId ||
+          req.user?._id?.toString?.() ||
+          req.internalActor?.adminId ||
+          null,
+      };
+
+      console.warn(JSON.stringify(alertPayload));
+    }
   });
 
   next();

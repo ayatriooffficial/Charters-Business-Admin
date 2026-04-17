@@ -147,14 +147,73 @@ export default function AdminInternshipFormPage({ mode = 'create' }) {
             </div>
 
             {isEdit && (
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 16, fontSize: 13, color: 'var(--text-secondary)' }}>
-                <input
-                  type="checkbox"
-                  checked={Boolean(formData.isActive)}
-                  onChange={(event) => setFormData((prev) => ({ ...prev, isActive: event.target.checked }))}
-                />
-                Active (visible to applicants)
-              </label>
+              <div
+                style={{
+                  marginBottom: 16,
+                  borderRadius: 12,
+                  padding: '12px 14px',
+                  border: `1px solid ${formData.isActive ? 'rgba(28, 151, 90, 0.45)' : 'rgba(197, 42, 86, 0.35)'}`,
+                  background: formData.isActive ? 'rgba(28, 151, 90, 0.08)' : 'rgba(197, 42, 86, 0.08)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                  alignItems: 'center'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Internship Status</span>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        padding: '3px 10px',
+                        borderRadius: 999,
+                        background: formData.isActive ? 'var(--green-dim)' : 'var(--red-dim)',
+                        color: formData.isActive ? 'var(--green)' : 'var(--red)'
+                      }}
+                    >
+                      {formData.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
+                    {formData.isActive
+                      ? 'This internship is live and visible to applicants.'
+                      : 'This internship is hidden from applicants until reactivated.'}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, isActive: !prev.isActive }))}
+                  aria-label="Toggle internship status"
+                  aria-pressed={Boolean(formData.isActive)}
+                  style={{
+                    width: 54,
+                    height: 30,
+                    borderRadius: 999,
+                    border: 'none',
+                    padding: 3,
+                    cursor: 'pointer',
+                    background: formData.isActive ? 'var(--green)' : 'var(--text-muted)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: formData.isActive ? 'flex-end' : 'flex-start',
+                    transition: 'all 0.2s ease',
+                    flexShrink: 0
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      background: '#fff',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+                    }}
+                  />
+                </button>
+              </div>
             )}
 
             <InputField
@@ -200,4 +259,3 @@ const selectStyle = {
   fontFamily: 'var(--font-body)',
   outline: 'none'
 };
-
