@@ -31,7 +31,7 @@ import ProfilePage from './pages/ProfilePage';
 import ContactPage from './pages/ContactPage';
 import DashboardOverview from './pages/DashboardOverview';
 
-const getDefaultRoute = (user) => (user?.role === 'admin' ? '/admin' : '/home');
+const getDefaultRoute = (user) => (user?.role === 'admin' ? '/admin' : (user?.role === 'user' ? '/dashboard-overview' : '/home'));
 
 // 🔐 Protected route (logged-in users)
 const ProtectedRoute = ({ children }) => {

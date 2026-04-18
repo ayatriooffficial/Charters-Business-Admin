@@ -9,7 +9,7 @@ export default function PageLayout({ children, title, subtitle, actions, fullWid
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const homeRoute = user?.role === 'admin' ? '/admin' : '/home';
+  const homeRoute = user?.role === 'admin' ? '/admin' : (user?.role === 'user' ? '/dashboard-overview' : '/home');
 
   const PROFILE_PATHS = [
     '/dashboard',
