@@ -26,15 +26,17 @@ export default function FaceTracker({ videoRef, onScore, intervalMs = 3000 }) {
       }
     };
 
-    const startNeutralFallback = () => {
+    const startUnavailableFallback = (reason = 'face-tracking-unavailable') => {
       clearTimer();
       intervalRef.current = setInterval(() => {
         onScore({
-          confidence: 0.6,
-          nervousness: 0.2,
-          engagement: 0.7,
-          eyeContact: 0.8,
-          expressions: { neutral: 0.6, happy: 0.4 },
+          unavailable: true,
+          reason,
+          confidence: 0,
+          nervousness: 0,
+          engagement: 0,
+          eyeContact: 0,
+          expressions: {},
           timestamp: Date.now(),
         });
       }, intervalMs);
@@ -108,7 +110,7 @@ export default function FaceTracker({ videoRef, onScore, intervalMs = 3000 }) {
           }
         }, intervalMs);
       } catch (error) {
-        startNeutralFallback();
+        startUnavailableFallback('face-api-model-load-failed');
       }
     };
 

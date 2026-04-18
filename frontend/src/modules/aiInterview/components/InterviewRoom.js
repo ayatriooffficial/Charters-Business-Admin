@@ -47,6 +47,7 @@ export default function InterviewRoom({
   const [connected, setConnected] = useState(false);
   const [fallbackMode, setFallbackMode] = useState(false);
   const [connectionError, setConnectionError] = useState('');
+  const [bodyTrackingUnavailable, setBodyTrackingUnavailable] = useState(false);
   const [agentStatus, setAgentStatus] = useState('connecting');
   const [ending, setEnding] = useState(false);
 
@@ -247,12 +248,23 @@ export default function InterviewRoom({
           || error?.message
           || ''
         ).trim();
+        const combinedMessage = `${backendMessage} ${String(error?.message || '')}`.trim();
         const livekitSpecific = /livekit|token|ws|interview/i.test(backendMessage);
+        const livekitAuthRejected = /could not fetch region settings|notallowed|401/i.test(combinedMessage);
+        const connectionHint = livekitAuthRejected
+          ? 'LiveKit rejected the room token (401). Check that LIVEKIT_URL, LIVEKIT_API_KEY, and LIVEKIT_API_SECRET belong to the same LiveKit project.'
+          : '';
+        const detailedMessage = connectionHint || backendMessage || 'LiveKit connection failed.';
 
         setFallbackMode(true);
         setConnected(true);
         setAgentStatus('listening');
-        setConnectionError(livekitSpecific ? `${backendMessage} You can still run local practice mode below.` : fallbackMessage);
+        setLiveScore((prev) => ({ ...prev, voice: 0 }));
+        setConnectionError(
+          livekitSpecific
+            ? `${detailedMessage} You can still run local practice mode below.`
+            : fallbackMessage
+        );
         await startLocalPreview();
       }
     };
@@ -271,6 +283,16 @@ export default function InterviewRoom({
   }, [detachRemoteAudioElements, handleIncomingData, interviewId, startLocalPreview, stopLocalPreview]);
 
   const handleBodyScore = useCallback((snapshot) => {
+    if (snapshot?.unavailable) {
+      setBodyTrackingUnavailable(true);
+      setLiveScore((prev) => ({
+        ...prev,
+        body: 0,
+      }));
+      return;
+    }
+
+    setBodyTrackingUnavailable(false);
     setBodySnapshots((prev) => [...prev, snapshot]);
     const bodyScore = clampPercent(
       Number(snapshot?.confidence || 0) * 45
@@ -320,7 +342,7 @@ export default function InterviewRoom({
         transcript,
         languageSnapshots,
         bodySnapshots,
-        voiceScore: liveScore.voice || 72,
+        voiceScore: liveScore.voice ?? 0,
       });
 
       onEnd({
@@ -395,7 +417,12 @@ export default function InterviewRoom({
             <h4 style={sectionTitleStyle}>Live Score Signals</h4>
             <ScoreMeter label="Content answers" value={liveScore.language || 50} color="var(--accent)" />
             <ScoreMeter label="Body language" value={liveScore.body} color="var(--navy)" />
-            <ScoreMeter label="Voice tone" value={liveScore.voice || 72} color="var(--green)" />
+            <ScoreMeter label="Voice tone" value={liveScore.voice ?? 0} color="var(--green)" />
+            {bodyTrackingUnavailable && (
+              <p style={{ fontSize: 12, color: 'var(--orange)', marginTop: 8 }}>
+                Face tracking models are unavailable, so body language scoring is paused.
+              </p>
+            )}
           </div>
         </Card>
 
