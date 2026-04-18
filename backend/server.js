@@ -46,6 +46,7 @@ const aiInterviewRoutes = loadRouteModule('aiInterview', './routes/aiInterview')
 const app = express();
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://charters-business-admin.vercel.app',
+  'https://charters-business.vercel.app',
   'http://localhost:3001',
   'http://127.0.0.1:3001',
   'http://localhost:3000',
@@ -53,6 +54,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
 ];
 const DEFAULT_ALLOWED_ORIGIN_PATTERNS = [
   /^https:\/\/charters-business-admin-[a-z0-9-]+\.vercel\.app$/i,
+  /^https:\/\/charters-business-[a-z0-9-]+\.vercel\.app$/i,
   /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/,
   /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,
 ];
