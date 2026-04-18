@@ -104,13 +104,11 @@ const getLoginPaths = () => {
     .map((path) => `/${String(path || '').trim().replace(/^\/+/, '')}`)
     .filter((path) => path !== '/');
 
-  if (configuredPaths.length > 0) {
-    return Array.from(new Set(configuredPaths));
-  }
-
-  return DEFAULT_LOGIN_PATHS;
+  return Array.from(new Set([
+    ...configuredPaths,
+    ...DEFAULT_LOGIN_PATHS,
+  ]));
 };
-
 const parseCsvValues = (value) => String(value || '')
   .split(',')
   .map((entry) => entry.trim())

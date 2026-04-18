@@ -4,6 +4,7 @@ import PageLayout from '../../components/Layout/PageLayout';
 import Card from '../../components/Common/Card';
 import Button from '../../components/Common/Button';
 import { recruitmentAdminService } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import {
   RiAddLine,
@@ -15,15 +16,20 @@ import {
 
 export default function AdminJobsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
+  const postingScope = user?.role === 'recruiter' ? 'mine' : 'all';
+  const emptyMessage = postingScope === 'mine'
+    ? "You haven't posted any jobs yet."
+    : 'No job postings are available yet.';
 
   const loadJobs = useCallback(async () => {
     try {
       setError('');
-      const data = await recruitmentAdminService.getMyJobPostings();
+      const data = await recruitmentAdminService.getJobPostings({ scope: postingScope });
       setJobs(data);
     } catch (err) {
       const message = err.message || 'Failed to load job postings';
@@ -31,7 +37,7 @@ export default function AdminJobsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [postingScope]);
 
   useEffect(() => {
     loadJobs();
@@ -69,12 +75,12 @@ export default function AdminJobsPage() {
         <Card hover={false}>
           <p style={{ color: 'var(--red)', marginBottom: 10 }}>{error}</p>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-            This usually means the admin backend cannot authenticate with the Charters API or the upstream jobs route contract is misaligned.
+            The admin jobs feed is failing upstream. This page now requests the platform-wide admin listing for admins and only falls back to personal postings for recruiter-scoped sessions.
           </p>
         </Card>
       ) : jobs.length === 0 ? (
         <Card hover={false} style={{ textAlign: 'center', padding: 40 }}>
-          <p style={{ color: 'var(--text-secondary)' }}>No jobs posted yet.</p>
+          <p style={{ color: 'var(--text-secondary)' }}>{emptyMessage}</p>
         </Card>
       ) : (
         <Card hover={false} padding="0">
@@ -183,5 +189,3 @@ const linkButtonStyle = {
   ...iconButtonStyle,
   textDecoration: 'none'
 };
-
-

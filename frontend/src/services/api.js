@@ -28,7 +28,7 @@ const api = axios.create({
   timeout: 30000
 });
 
-// Request interceptor — attach token
+// Request interceptor â€” attach token
 api.interceptors.request.use(
   (config) => {
     // Only use sessionStorage for auth token (cleared when tab is closed).
@@ -41,7 +41,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor — handle global errors
+// Response interceptor â€” handle global errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -70,7 +70,7 @@ api.interceptors.response.use(
 export default api;
 
 
-// ─── Profile Branding Service ─────────────────────────────────────
+// â”€â”€â”€ Profile Branding Service â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const profileService = {
   getScore:           ()       => api.get('/profile-branding/score'),
   calculateScore:     ()       => api.post('/profile-branding/calculate'),
@@ -91,7 +91,7 @@ export const profileService = {
   completeSuggestion: (id)     => api.put(`/profile-branding/suggestions/${id}/complete`)
 };
 
-// ─── AI Services ──────────────────────────────────────────────────
+// â”€â”€â”€ AI Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const aiService = {
   improveHeadline:    (data)   => api.post('/ai-services/improve-headline', data),
   improveAbout:       (data)   => api.post('/ai-services/improve-about', data),
@@ -197,16 +197,26 @@ const getObjectFromResponse = (response, keys = []) => {
 };
 
 export const recruitmentAdminService = {
-  getMyJobPostings: async () => {
+  getJobPostings: async ({ scope = 'all' } = {}) => {
+    const requests = scope === 'mine'
+      ? [
+          () => api.get('/admin/jobs/my-postings'),
+          () => api.get('/admin/jobs'),
+        ]
+      : [
+          () => api.get('/admin/jobs'),
+          () => api.get('/admin/jobs/my-postings'),
+        ];
+
     const response = await requestWithFallback(
-      [
-        () => api.get('/admin/jobs/my-postings'),
-      ],
-      'My job postings endpoint is not available on this backend.'
+      requests,
+      'Job postings endpoint is not available on this backend.'
     );
 
     return toArray(getCollectionFromResponse(response, ['jobPostings', 'jobs', 'data']));
   },
+
+  getMyJobPostings: async () => recruitmentAdminService.getJobPostings({ scope: 'mine' }),
 
   getJobById: async (id) => {
     const response = await requestWithFallback(
@@ -258,16 +268,26 @@ export const recruitmentAdminService = {
     return toArray(getCollectionFromResponse(response, ['applications', 'jobApplications', 'data']));
   },
 
-  getMyInternshipPostings: async () => {
+  getInternshipPostings: async ({ scope = 'all' } = {}) => {
+    const requests = scope === 'mine'
+      ? [
+          () => api.get('/admin/internships/my-postings'),
+          () => api.get('/admin/internships'),
+        ]
+      : [
+          () => api.get('/admin/internships'),
+          () => api.get('/admin/internships/my-postings'),
+        ];
+
     const response = await requestWithFallback(
-      [
-        () => api.get('/admin/internships/my-postings'),
-      ],
-      'My internship postings endpoint is not available on this backend.'
+      requests,
+      'Internship postings endpoint is not available on this backend.'
     );
 
     return toArray(getCollectionFromResponse(response, ['internshipPostings', 'internships', 'data']));
   },
+
+  getMyInternshipPostings: async () => recruitmentAdminService.getInternshipPostings({ scope: 'mine' }),
 
   getInternshipById: async (id) => {
     const response = await requestWithFallback(
